@@ -11,6 +11,10 @@ export const deckEntries: DeckEntry[] = [
     id: 'backend-workshop', title: 'Backend Workshop',
     load: () => import('../decks/backend-workshop/src/definition').then(module => module.backendWorkshop),
   },
+  {
+    id: 'pytorch-basic', title: 'PyTorch basic',
+    load: () => import('../decks/pytorch-basic/deck').then(module => module.pytorchBasicDeck),
+  },
   // The player test fixture is exercised in browser tests, not published in the collection.
   ...(import.meta.env.MODE === 'test' ? [{
     id: 'example', title: 'A different perspective',
