@@ -161,3 +161,25 @@
 [data-deck="scaling-collapse"] .sc-closing-question { font-size:28px; color:var(--sc-gray); margin-bottom:56px; }
 [data-deck="scaling-collapse"] .sc-thanks h1 { font:400 140px/1.25 'SC Allura','Snell Roundhand',cursive; white-space:nowrap; }
 [data-deck="scaling-collapse"] .sc-closing-rule { width:100px; height:2px; background:var(--sc-blue); margin:30px auto 0; }
+
+/* MathML: deck typeface, left aligned like the surrounding text. */
+[data-deck="scaling-collapse"] math { font-family:var(--sc-font); font-size:1em; }
+[data-deck="scaling-collapse"] math[display="block"] { width:fit-content; margin:0; }
+[data-deck="scaling-collapse"] mfrac { padding:0 .12em; }
+[data-deck="scaling-collapse"] mtd { padding:10px 8px; }
+[data-deck="scaling-collapse"] mtd:nth-child(1) { text-align:right; }
+[data-deck="scaling-collapse"] mtd:nth-child(2) { text-align:center; }
+[data-deck="scaling-collapse"] mtd:nth-child(3) { text-align:left; }
+[data-deck="scaling-collapse"] :is(mtable, .sc-columns p math) { math-style:normal; }
+[data-deck="scaling-collapse"] .sc-math-lg { font-size:42px; }
+[data-deck="scaling-collapse"] .sc-math-xl { font-size:60px; }
+[data-deck="scaling-collapse"] .sc-formulas math { font-size:46px; }
+[data-deck="scaling-collapse"] .sc-steps math { font-size:30px; math-style:normal; vertical-align:middle; }
+[data-deck="scaling-collapse"] .sc-columns p math { font-size:30px; color:var(--sc-ink); }
+[data-deck="scaling-collapse"] .sc-h { color:var(--sc-warm); }
+[data-deck="scaling-collapse"] .sc-title-sub { margin-left:20px; font-weight:500; font-size:44px; letter-spacing:-.5px; }
+[data-deck="scaling-collapse"] .sc-lead { font-size:27px; color:var(--sc-gray); }
+[data-deck="scaling-collapse"] .sc-ema-note { border-top:1px solid var(--sc-line); padding-top:20px; display:grid; gap:6px; }
+[data-deck="scaling-collapse"] .sc-ema-note p { font-size:27px; color:var(--sc-gray); }
+[data-deck="scaling-collapse"] .sc-ema-note math { font-size:30px; color:var(--sc-ink); }
+[data-deck="scaling-collapse"] .sc-small { font-size:23px; line-height:1.6; color:var(--sc-gray); }

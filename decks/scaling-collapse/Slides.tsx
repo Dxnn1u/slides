@@ -8,7 +8,8 @@ export const pages = [
   ['collapse', 'Collapse：形狀相同，不是 loss 相同', 3],
   ['normalize', '怎麼正規化一條 loss curve', 1],
   ['controls', '三個控制量決定曲線形狀', 1],
-  ['tau', '為什麼關鍵是 τ？', 3],
+  ['tau-ema', 'τ 從哪裡來？', 2],
+  ['tau', '為什麼關鍵是 τ？', 2],
   ['applications', '塌縮能拿來做什麼', 1],
   ['relation', '和我們的關係', 1],
   ['upwash', 'Upwash：現況與缺口', 1],
@@ -19,7 +20,7 @@ export const pages = [
 
 const paperHref = 'https://arxiv.org/abs/2509.25087';
 const paperLabel = 'Bergsma et al., ICLR 2026';
-const paperSlides = new Set(['collapse', 'normalize', 'controls', 'tau', 'applications']);
+const paperSlides = new Set(['collapse', 'normalize', 'controls', 'tau-ema', 'tau', 'applications']);
 
 /* ---------- Schematic curves (synthetic, not experimental data) ---------- */
 
@@ -110,17 +111,33 @@ function Problem() {
   </div>;
 }
 
+/* ---------- MathML building blocks (MathML Core: Chromium, Safari and Firefox render it natively) ---------- */
+
+const That = () => <mover accent="true"><mi>t</mi><mo>^</mo></mover>;
+const Sub = ({ base, sub }: { base: ReactNode; sub: ReactNode }) => <msub>{base}{sub}</msub>;
+const Frac = ({ top, bottom }: { top: ReactNode; bottom: ReactNode }) => <mfrac><mrow>{top}</mrow><mrow>{bottom}</mrow></mfrac>;
+const Txt = ({ children }: { children: string }) => <mi mathvariant="normal">{children}</mi>;
+const Lfinal = () => <Sub base={<mi>L</mi>} sub={<Txt>final</Txt>}/>;
+const Lt = () => <><mi>L</mi><mo>(</mo><That/><mo>)</mo></>;
+const Lhat = () => <mover accent="true"><mi>L</mi><mo>^</mo></mover>;
+
 function Normalize() {
   return <div className="sc-normalize">
     <div className="sc-formulas">
-      <div><span>橫軸</span><p className="sc-formula">t̂ = D<sub>seen</sub> / D<sub>total</sub></p></div>
-      <div><span>縱軸</span><p className="sc-formula">ℓ(t̂) = L(t̂) / L<sub>final</sub></p></div>
+      <div><span>橫軸：訓練進度</span>
+        <math display="block" aria-label="t hat 等於已訓練 tokens 除以總 tokens">
+          <That/><mo>=</mo><Frac top={<Sub base={<mi>D</mi>} sub={<Txt>seen</Txt>}/>} bottom={<Sub base={<mi>D</mi>} sub={<Txt>total</Txt>}/>}/>
+        </math></div>
+      <div><span>縱軸：除以最終 loss</span>
+        <math display="block" aria-label="ell of t hat 等於 L of t hat 除以 L final">
+          <mi>ℓ</mi><mo>(</mo><That/><mo>)</mo><mo>=</mo><Frac top={<Lt/>} bottom={<Lfinal/>}/>
+        </math></div>
     </div>
     <ol className="sc-steps">
       <li><b>平滑</b>：train loss 先做移動平均（論文用 100 step）</li>
-      <li><b>offset</b>：一般式是 (L − L̂)／(L<sub>final</sub> − L̂)，論文發現 L̂ = 0 對齊最好</li>
-      <li><b>對齊網格</b>：各規模 step 數不同，先內插到同一組 t̂</li>
-      <li><b>殘差</b>：ℓ<sub>N</sub>(t̂) − ℓ<sub>ref</sub>(t̂)，用 seed 雜訊當判斷基準</li>
+      <li><b>offset</b>：一般式是 <math aria-label="L 減 L hat，除以 L final 減 L hat"><Frac top={<><mi>L</mi><mo>−</mo><Lhat/></>} bottom={<><Lfinal/><mo>−</mo><Lhat/></>}/></math>，論文發現 <math><Lhat/><mo>=</mo><mn>0</mn></math> 對齊最好</li>
+      <li><b>對齊網格</b>：各規模 step 數不同，先內插到同一組 <math><That/></math></li>
+      <li><b>殘差</b>：<math><Sub base={<mi>ℓ</mi>} sub={<mi>N</mi>}/><mo>(</mo><That/><mo>)</mo><mo>−</mo><Sub base={<mi>ℓ</mi>} sub={<Txt>ref</Txt>}/><mo>(</mo><That/><mo>)</mo></math>，用 seed 雜訊當判斷基準</li>
     </ol>
   </div>;
 }
@@ -129,7 +146,9 @@ function Controls() {
   return <>
     <div className="sc-columns sc-three">
       <div><span className="sc-index">TPP</span><h2>tokens per parameter</h2><p>D／N。固定 τ 時，TPP 越高，<br/>曲線越低、越早變平。</p></div>
-      <div><span className="sc-index">τ</span><h2>AdamW timescale</h2><p>B／(ηλD)。權重記得<br/>多大比例的訓練過程。</p></div>
+      <div><span className="sc-index">τ</span><h2>AdamW timescale</h2><p>
+        <math display="block" aria-label="tau 等於 B 除以 eta lambda D"><mi>τ</mi><mo>=</mo><Frac top={<mi>B</mi>} bottom={<><mi>η</mi><mi>λ</mi><mi>D</mi></>}/></math>
+        權重記得多大比例的訓練過程。</p></div>
       <div><span className="sc-index">LR</span><h2>schedule 形狀</h2><p>不同 schedule 造成不同形變，<br/>但形變本身與規模無關。</p></div>
     </div>
     <div className="sc-contrast">
@@ -139,30 +158,75 @@ function Controls() {
   </>;
 }
 
-const tauCaptions = ['定義', '機制', '推論'];
-function Tau({ step }: { step: number }) {
-  return <div className="sc-tau" data-step={step}>
-    <ol className="sc-tau-rail" aria-hidden="true">
-      {tauCaptions.map((c, i) => <li key={c} data-on={step >= i} data-current={step === i}>{c}</li>)}
-    </ol>
+function Rail({ items, step }: { items: readonly string[]; step: number }) {
+  return <ol className="sc-tau-rail" aria-hidden="true">
+    {items.map((c, i) => <li key={c} data-on={step >= i} data-current={step === i}>{c}</li>)}
+  </ol>;
+}
+
+/** Where τ comes from: AdamW's update is an EMA of −u/λ with coefficient ηλ. */
+function TauEma({ step }: { step: number }) {
+  const theta = (sub: ReactNode) => <Sub base={<mi>θ</mi>} sub={sub}/>;
+  const prev = <mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow>;
+  return <div className="sc-tau">
+    <Rail items={['更新式', '時間尺度']} step={step}/>
     <div className="sc-tau-stage">
       {step === 0 && <div className="sc-tau-block">
-        <p className="sc-formula">θ<sub>t</sub> = (1 − ηλ)·θ<sub>t−1</sub> − η·u<sub>t</sub></p>
-        <p>AdamW 的權重就是「過去更新的 EMA」，大約記得最近 1／(ηλ) 步。</p>
-        <p className="sc-formula sc-accent">τ = 1 / (ηλT) = B / (ηλD)</p>
-        <p>正規化成訓練總長的比例：τ = 0.05 代表權重記得最後約 5% 的訓練。</p>
+        <p className="sc-lead">AdamW 每一步的更新（u<sub>t</sub> 是 Adam 算出的方向）可以改寫成：</p>
+        <math display="block" className="sc-math-lg" aria-label="AdamW 更新改寫成指數移動平均">
+          <mtable>
+            <mtr><mtd>{theta(<mi>t</mi>)}</mtd><mtd><mo>=</mo></mtd><mtd>{theta(prev)}<mo>−</mo><mi>η</mi><mi>λ</mi>{theta(prev)}<mo>−</mo><mi>η</mi><Sub base={<mi>u</mi>} sub={<mi>t</mi>}/></mtd></mtr>
+            <mtr><mtd/><mtd><mo>=</mo></mtd><mtd><mo>(</mo><mn>1</mn><mo>−</mo><mi>η</mi><mi>λ</mi><mo>)</mo>{theta(prev)}<mo>+</mo><mi>η</mi><mi>λ</mi><mo>·</mo><mrow><mo>(</mo><mo>−</mo><Frac top={<Sub base={<mi>u</mi>} sub={<mi>t</mi>}/>} bottom={<mi>λ</mi>}/><mo>)</mo></mrow></mtd></mtr>
+          </mtable>
+        </math>
+        <div className="sc-ema-note">
+          <p><b>這就是 EMA</b>：新值 = (1 − α)·舊值 + α·新觀測，係數 <math><mi>α</mi><mo>=</mo><mi>η</mi><mi>λ</mi></math></p>
+          <p>AdamW 的權重，就是「−u／λ」的指數移動平均。</p>
+        </div>
       </div>}
       {step === 1 && <div className="sc-tau-block">
-        <p className="sc-formula sc-formula-long">E[L(t̂)] = ½h·[ e<sup>−2t̂/τ</sup>·E[θ₀²] + (σ²/2τ)·(1 − e<sup>−2t̂/τ</sup>) ]</p>
+        <math display="block" className="sc-math-lg" aria-label="tau iter 等於 1 除以 eta lambda；tau 等於 tau iter 除以 T，等於 B 除以 eta lambda D">
+          <mtable>
+            <mtr><mtd><Sub base={<mi>τ</mi>} sub={<Txt>iter</Txt>}/></mtd><mtd><mo>=</mo></mtd><mtd><Frac top={<mn>1</mn>} bottom={<><mi>η</mi><mi>λ</mi></>}/></mtd></mtr>
+            <mtr><mtd><mi>τ</mi></mtd><mtd><mo>=</mo></mtd><mtd><Frac top={<Sub base={<mi>τ</mi>} sub={<Txt>iter</Txt>}/>} bottom={<mi>T</mi>}/><mo>=</mo><Frac top={<mi>B</mi>} bottom={<><mi>η</mi><mi>λ</mi><mi>D</mi></>}/></mtd></mtr>
+          </mtable>
+        </math>
+        <div className="sc-tau-terms">
+          <div><b>τ<sub>iter</sub></b><span>以步數計：權重大約記得最近 1／(ηλ) 步</span></div>
+          <div><b>τ</b><span>除以總步數 T = D／B，變成佔整個訓練的比例</span></div>
+        </div>
+        <p className="sc-small">例：η = 3×10⁻⁴、λ = 0.1、T = 50,000 步 → τ ≈ 0.67。τ 不是 AdamW 的超參數，而是 η、λ、B、D 算出的衍生量；也不同於 β₁、β₂（只記得幾十步的梯度統計）。</p>
+      </div>}
+    </div>
+  </div>;
+}
+
+function Tau({ step }: { step: number }) {
+  const e = <msup><mi>e</mi><mrow><mo>−</mo><mn>2</mn><That/><mo>/</mo><mi>τ</mi></mrow></msup>;
+  const half = <Frac top={<mn>1</mn>} bottom={<mn>2</mn>}/>;
+  return <div className="sc-tau">
+    <Rail items={['機制', '推論']} step={step}/>
+    <div className="sc-tau-stage">
+      {step === 0 && <div className="sc-tau-block">
+        <math display="block" className="sc-math-lg" aria-label="noisy quadratic model 下 loss 的期望值">
+          <mi mathvariant="normal">E</mi><mo>[</mo><Lt/><mo>]</mo><mo>=</mo>{half}<mi className="sc-h">h</mi>
+          <mrow><mo>[</mo>{e}<mo>·</mo><mi mathvariant="normal">E</mi><mo>[</mo><msubsup><mi>θ</mi><mn>0</mn><mn>2</mn></msubsup><mo>]</mo><mo>+</mo>
+            <Frac top={<msup><mi>σ</mi><mn>2</mn></msup>} bottom={<><mn>2</mn><mi>τ</mi></>}/><mo>(</mo><mn>1</mn><mo>−</mo>{e}<mo>)</mo><mo>]</mo></mrow>
+        </math>
         <div className="sc-tau-terms">
           <div><b>bias</b><span>初始化偏差，隨 t̂／τ 指數衰減</span></div>
           <div><b>variance</b><span>梯度雜訊的下限，約和 1／τ 成正比</span></div>
         </div>
         <p>LR 衰減會讓瞬時的 τ<sub>t</sub> 變大，所以訓練末段 loss 會急降。</p>
       </div>}
-      {step === 2 && <div className="sc-tau-block">
-        <h2>除以最終 loss，曲率 h 被消掉</h2>
-        <p>正規化後的曲線只剩 τ 和 t̂ 決定形狀，和模型大小無關。</p>
+      {step === 1 && <div className="sc-tau-block">
+        <math display="block" className="sc-math-lg" aria-label="L of t hat 除以 L of 1，曲率 h 約掉，只剩 g of t hat 與 tau">
+          <Frac top={<Lt/>} bottom={<><mi>L</mi><mo>(</mo><mn>1</mn><mo>)</mo></>}/><mo>=</mo>
+          <Frac top={<>{half}<mi className="sc-h">h</mi><mo>·</mo><mi>g</mi><mo>(</mo><That/><mo>;</mo><mi>τ</mi><mo>)</mo></>} bottom={<>{half}<mi className="sc-h">h</mi><mo>·</mo><mi>g</mi><mo>(</mo><mn>1</mn><mo>;</mo><mi>τ</mi><mo>)</mo></>}/>
+          <mo>=</mo><Frac top={<><mi>g</mi><mo>(</mo><That/><mo>;</mo><mi>τ</mi><mo>)</mo></>} bottom={<><mi>g</mi><mo>(</mo><mn>1</mn><mo>;</mo><mi>τ</mi><mo>)</mo></>}/>
+        </math>
+        <h2>曲率 h 只是外面的倍數，除法把它約掉</h2>
+        <p>正規化後的曲線只剩 τ 和 t̂ 決定形狀，和模型大小無關（前提：訓練結束時 bias 可忽略）。</p>
         <h2 className="sc-tau-second">只要 τ 相同，改 η、λ 或 B 都一樣</h2>
         <p>要調的是 τ 這個組合，不是個別的 weight decay。</p>
       </div>}
@@ -232,7 +296,10 @@ function Experiments() {
 
 function Forecast() {
   return <div className="sc-forecast">
-    <p className="sc-formula sc-accent sc-formula-big">L̂<sub>final</sub> = L(t̂<sub>now</sub>) / ℓ<sub>ref</sub>(t̂<sub>now</sub>)</p>
+    <math display="block" className="sc-math-xl sc-accent" aria-label="預測的最終 loss 等於現在的 loss 除以參考曲線在現在進度的值">
+      <Sub base={<Lhat/>} sub={<Txt>final</Txt>}/><mo>=</mo>
+      <Frac top={<><mi>L</mi><mo>(</mo><Sub base={<That/>} sub={<Txt>now</Txt>}/><mo>)</mo></>} bottom={<><Sub base={<mi>ℓ</mi>} sub={<Txt>ref</Txt>}/><mo>(</mo><Sub base={<That/>} sub={<Txt>now</Txt>}/><mo>)</mo></>}/>
+    </math>
     <div className="sc-example">
       <span>示意</span>
       <p>1B 跑到 30%，loss = 2.95；參考曲線 ℓ<sub>ref</sub>(0.3) = 1.12<br/>→ 預測最終 loss ≈ 2.95 ／ 1.12 ≈ <b>2.63</b></p>
@@ -269,6 +336,7 @@ export function Slide(r: SlideRenderProps) {
       {id === 'collapse' && <>{title(<>Collapse：形狀相同，<span className="sc-muted">不是 loss 相同</span></>)}{body(<CollapseFigure step={r.step}/>)}</>}
       {id === 'normalize' && <>{title('怎麼正規化一條 loss curve')}{body(<Normalize/>)}</>}
       {id === 'controls' && <>{title('三個控制量決定曲線形狀')}{body(<Controls/>)}</>}
+      {id === 'tau-ema' && <>{title(<>τ 從哪裡來？<span className="sc-muted sc-title-sub">AdamW 的權重是一個 EMA</span></>)}{body(<TauEma step={r.step}/>)}</>}
       {id === 'tau' && <>{title('為什麼關鍵是 τ？')}{body(<Tau step={r.step}/>)}</>}
       {id === 'applications' && <>{title('塌縮能拿來做什麼')}{body(<Applications/>)}</>}
       {id === 'relation' && <>{title('和我們的關係')}{body(<Relation/>)}</>}

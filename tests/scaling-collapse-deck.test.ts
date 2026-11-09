@@ -8,8 +8,8 @@ import type { SlideRenderProps } from '../src/presentation/types';
 const noop = () => {};
 const actions = { next: noop, previous: noop, nextSlide: noop, previousSlide: noop, jump: noop, restart: noop };
 
-it('traverses all 16 states forward and backward', () => {
-  expect(deck.slides).toHaveLength(12);
+it('traverses all 17 states forward and backward', () => {
+  expect(deck.slides).toHaveLength(13);
   let state = initialState(deck);
   const visited = [`${state.slideId}:${state.step}`];
   for (;;) {
@@ -18,7 +18,7 @@ it('traverses all 16 states forward and backward', () => {
     state = next;
     visited.push(`${state.slideId}:${state.step}`);
   }
-  expect(visited).toHaveLength(16);
+  expect(visited).toHaveLength(17);
   expect(state.slideId).toBe('closing');
   for (const expected of visited.slice(0, -1).reverse()) {
     state = reduce(deck, state, { type: 'previous' });
@@ -40,6 +40,7 @@ it('marks the schematic figure and renders previews without links', () => {
       const html = renderToStaticMarkup(createElement(deck.RenderSlide, props));
       expect(html).toContain('data-still="true"');
       if (slide.id === 'collapse') expect(html).toContain('不是實驗數據');
+      if (['normalize', 'tau-ema', 'tau', 'forecast'].includes(String(slide.id))) expect(html).toContain('<math');
     }
     const preview: SlideRenderProps = { slide, step: slide.steps - 1, actions, mode: 'preview', active: false, still: true, reducedMotion: true };
     expect(renderToStaticMarkup(createElement(deck.RenderSlide, preview))).not.toContain('<a ');

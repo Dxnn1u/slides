@@ -3,7 +3,7 @@ import { pages, Slide } from './Slides';
 import './styles.css';
 
 export const scalingCollapseDeck = defineDeck({
-  id: 'scaling-collapse', title: 'Scaling with Collapse', version: 1,
+  id: 'scaling-collapse', title: 'Scaling with Collapse', version: 2,
   description: '用整條 loss 曲線預測大模型：論文、Lab6 與 Upwash 的實驗規劃。',
   size: { width: 1600, height: 900 },
   slides: pages.map(([id, title, steps]) => ({ id, title, steps })),
