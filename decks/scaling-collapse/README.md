@@ -19,7 +19,7 @@
 | 9 | tpp | B | 機制 ③：代入 power law，N 約掉、TPP 留下 | 1 | 0:50 |
 | 10 | schedule | B | 機制 ④：schedule 分配 bias 與 variance | 1 | 0:40 |
 | 11 | evidence | B | 實驗證據、保證鏈、應用與前提 | 1 | 1:00 |
-| 12 | lab6 | C | 條件核對、預測方法、embedding 疑慮 | 1 | 1:10 |
+| 12 | lab6 | C | 條件核對、預測方法、待驗證事項 | 1 | 1:10 |
 | 13 | experiments | D | E1–E4，第二步出現結論與 Thanks | 2 | 1:10 |
 
 合計約 10:30。講稿與數字來源在 [SPEAKER_NOTES.md](./SPEAKER_NOTES.md)。

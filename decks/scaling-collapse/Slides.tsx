@@ -117,14 +117,15 @@ function Claim() {
   return <div className="sc-claim">
     <p className="sc-claim-line">在 μP 下，只要各規模的</p>
     <div className="sc-chips">
-      <span><b>TPP</b>相同</span><i>＋</i><span><b>τ</b>相同且最佳</span><i>＋</i><span><b>LR schedule</b>相同</span>
+      <span><b>TPP</b>相同</span><i>＋</i><span><b>τ</b>相同</span><i>＋</i><span><b>LR schedule</b>相同</span>
       <i>⇒</i><strong>正規化後的 loss curve 疊成同一條</strong>
     </div>
+    <p className="sc-small sc-claim-note">最佳 τ 只取決於 TPP，所以各規模的 τ 取最佳值時，自然就相同。</p>
     <div className="sc-contrast-cards">
       <div data-tone="bad"><Spark tone="bad" curves={[t => shape(t, 0.09, 0.08), t => shape(t, 0.13, 0.05), t => shape(t, 0.18, 0.02)]}/>
         <div><b>Llama-2</b><span>各規模 TPP 不同，τ ≈ 0.07／0.13</span><strong>不塌縮</strong></div></div>
       <div data-tone="good"><Spark tone="good" curves={[shape, t => shape(t) + 0.004, t => shape(t) - 0.003, t => shape(t) + 0.002]}/>
-        <div><b>Celerity</b><span>300M–1.8B 全部 234 TPP、τ = 0.05</span><strong>塌縮</strong></div></div>
+        <div><b>Celerity</b><span>300M–3.9B 全部 234 TPP、τ = 0.05</span><strong>塌縮</strong></div></div>
     </div>
     <Schematic/>
   </div>;
@@ -161,7 +162,7 @@ function Normalize() {
       </math>
     </div>
     <ol className="sc-chiprow">
-      <li><b>平滑</b><span>train loss 做 100 step 移動平均</span></li>
+      <li><b>平滑</b><span>train loss 做 100 step 移動平均，壓小 batch 的雜訊</span></li>
       <li><b>offset</b><span>一般式會減掉 <math><Lhat/></math>，論文用 <math><Lhat/><mo>=</mo><mn>0</mn></math></span></li>
       <li><b>內插</b><span>各規模內插到同一組 <math><That/></math></span></li>
       <li><b>殘差</b><span>和 seed 之間的雜訊比較</span></li>
@@ -244,7 +245,7 @@ function TauEma({ step }: { step: number }) {
           <div><b>τ<sub>iter</sub></b><span>以步數計：權重大約記得最近 1／(ηλ) 步</span></div>
           <div><b>τ</b><span>除以總步數 T = D／B：記得整個訓練的多大比例</span></div>
         </div>
-        <p className="sc-small">例：η = 3×10⁻⁴、λ = 0.1、T = 50,000 步 → τ ≈ 0.67。τ 不是 AdamW 的超參數，而是 η、λ、B、D 的組合；也不同於只記得幾十步梯度統計的 β₁、β₂。</p>
+        <p className="sc-small">例：η = 3×10⁻⁴、λ = 0.1、T = 50,000 步 → τ ≈ 0.67（η 要用 μP 調整後的值）。τ 不是 AdamW 的超參數，而是 η、λ、B、D 的組合；也不同於只記得幾十步梯度統計的 β₁、β₂。</p>
       </div>}
     </div>
   </div>;
@@ -267,7 +268,10 @@ function Tau({ step }: { step: number }) {
           <div><b>bias</b><span>初始化偏差，隨 t̂／τ 指數衰減</span></div>
           <div><b>variance</b><span>梯度雜訊的下限，約和 1／τ 成正比</span></div>
         </div>
-        <p className="sc-small">τ 小：bias 降得快，但停在比較高的地方。τ 決定兩者的比例，也就決定了曲線怎麼彎。</p>
+        <ul className="sc-cases">
+          <li><b>Constant LR</b><span>τ 小，前期降得快，但停在比較高的地方</span></li>
+          <li><b>Linear D2Z</b><span>效果反過來：τ 小，後期掉得更多；τ 大，前期掉得更多</span></li>
+        </ul>
       </div>}
       {step === 1 && <div className="sc-mech-block">
         <math display="block" className="sc-math-lg" aria-label="L of t hat 除以 L of 1，曲率 h 約掉，只剩 g of t hat 與 tau">
@@ -294,7 +298,7 @@ function Tpp() {
   const ta = <msup><That/><mrow><mo>−</mo><mi>α</mi></mrow></msup>;
   return <div className="sc-tpp">
     <div className="sc-tpp-math">
-      <p className="sc-lead">訓練到進度 t̂，等於看了 t̂·k·N 個 token（k = TPP）。代入 Chinchilla 形式（取 α = β）：</p>
+      <p className="sc-lead">Constant LR 下，訓練到 t̂ 的那一點，就是一個只訓練 t̂·k·N 個 token 的完整訓練的終點（k = TPP）。代入 Chinchilla 形式（取 α = β）：</p>
       <math display="block" className="sc-math-md" aria-label="代入 Chinchilla 形式後，N 被約掉，只剩 TPP k">
         <mtable>
           <mtr><mtd><Lt/></mtd><mtd><mo>=</mo></mtd><mtd><mi>E</mi><mo>+</mo><mi>A</mi>{N}<mo>+</mo><mi>B</mi><msup><mrow><mo>(</mo><That/><mo>·</mo>{k}<mo>·</mo><mi className="sc-h">N</mi><mo>)</mo></mrow><mrow><mo>−</mo><mi>α</mi></mrow></msup></mtd></mtr>
@@ -318,11 +322,11 @@ function Tpp() {
   </div>;
 }
 
-/** LR multipliers on t̂ ∈ [0, 1]: 1% warmup, then the decay shape. */
-const warm = (t: number, f: (t: number) => number) => (t < 0.01 ? t / 0.01 : f(t));
+/** LR multipliers on t̂ ∈ [0, 1]: 10% warmup (as in the paper), then the decay shape. */
+const warm = (t: number, f: (t: number) => number) => (t < 0.1 ? t / 0.1 : f(t));
 const schedules = [
-  { name: 'Linear D2Z（論文用）', c: '#3f51c7', f: (t: number) => warm(t, x => (1 - x) / 0.99) },
-  { name: 'Cosine', c: '#8c98da', f: (t: number) => warm(t, x => 0.5 * (1 + Math.cos(Math.PI * (x - 0.01) / 0.99))) },
+  { name: 'Linear D2Z（論文用）', c: '#3f51c7', f: (t: number) => warm(t, x => (1 - x) / 0.9) },
+  { name: 'Cosine', c: '#8c98da', f: (t: number) => warm(t, x => 0.5 * (1 + Math.cos(Math.PI * (x - 0.1) / 0.9))) },
   { name: 'WSD', c: '#1d8a6b', f: (t: number) => warm(t, x => (x < 0.8 ? 1 : (1 - x) / 0.2)) },
 ];
 
@@ -343,7 +347,7 @@ function Schedule() {
       <li><b>前期 LR 高</b><span>權重快速離開初始值，bias 降得快，但雜訊大</span></li>
       <li><b>後期 LR 降</b><span>瞬時 τ<sub>t</sub> 變大，雜訊被平均掉，loss 急降</span></li>
       <li><b>μP 下與規模無關</b><span>schedule 造成的形變對每個規模都一樣，只要形狀相同</span></li>
-      <li><b>實作提醒</b><span>warmup、cooldown（例如 WSD 的最後 20%）用「佔訓練的比例」設定，不要寫死步數</span></li>
+      <li><b>warmup 用比例</b><span>Celerity 的 warmup 有 375M token 上限，各規模比例不同，20 TPP 前段就出現小偏差</span></li>
     </ol>
   </div>;
 }
@@ -354,7 +358,7 @@ function Evidence() {
       <div><span className="sc-index">實驗</span><h3>三個因素確實決定形狀</h3><ul>
         <li>610M：同一個 τ，改 η、λ 或 B，曲線一起移動</li>
         <li>固定 τ 改 TPP：TPP 越高，越早變平</li>
-        <li>Celerity 300M–1.8B：曲線塌縮</li>
+        <li>Celerity 300M–3.9B、20／80／234 TPP 三組：都塌縮</li>
       </ul></div>
       <div><span className="sc-index">保證</span><h3>為什麼一定會塌縮</h3>
         <ol className="sc-chain">
@@ -364,12 +368,12 @@ function Evidence() {
           <li className="sc-chain-end">⇒ 塌縮</li>
         </ol></div>
       <div><span className="sc-index">應用</span><h3>從現象變成工具</h3><ul>
-        <li>1.8B 在訓練 <b>60%</b> 時，殘差就揭露數值問題</li>
+        <li>1.8B：殘差把問題定位在 <b>60%</b>，原始曲線要到 90% 後才看得出</li>
         <li>111M 擬合曲線形式，外推 3.3B（約 1000 倍 FLOPs）</li>
-        <li>調參時固定 τ，看前 10–30% 就能提早停掉</li>
+        <li>λ sweep：1.7B 看 30%、3.3B 看 10%，就選對最佳值</li>
       </ul></div>
     </div>
-    <p className="sc-premise"><span>前提</span>μP · 超參數是該資料預算下的最佳值 · 訓練結束時 bias 可忽略 · loss 呈 power law · AdamW</p>
+    <p className="sc-premise"><span>前提</span>μP／CompleteP · AdamW · 單一 epoch · 超參數是該資料預算下的最佳值 · 訓練結束時 bias 可忽略 · loss 呈 power law</p>
   </div>;
 }
 
@@ -377,9 +381,9 @@ function Evidence() {
 
 const checks = [
   ['TPP 相同', 'lab 規定 200 TPP', '已滿足', 'done'],
-  ['LR schedule 相同', 'WSD，warmup／cooldown 用比例', '要設定', 'todo'],
-  ['τ 相同且最佳', '150M 掃 τ，中心 0.05（Celerity）', '要實驗', 'todo'],
-  ['μP', 'param groups、logit multiplier', '要實作', 'todo'],
+  ['LR schedule 相同', '各規模同一種（待討論），warmup 用比例', '要決定', 'todo'],
+  ['τ 相同', '150M 掃 τ 取最佳，中心 0.05（Celerity）', '要實驗', 'todo'],
+  ['μP', 'param groups、logit multiplier；ladder 改層數就考慮 CompleteP', '要實作', 'todo'],
 ] as const;
 
 function Lab6() {
@@ -392,12 +396,15 @@ function Lab6() {
     </table>
     <div className="sc-lab6-side">
       <span className="sc-index">預測 1B 的終點</span>
-      <math display="block" className="sc-math-md sc-accent" aria-label="預測的最終 loss 等於現在的 loss 除以參考曲線在現在進度的值">
-        <Sub base={<Lhat/>} sub={<Txt>final</Txt>}/><mo>=</mo>
-        <Frac top={<><mi>L</mi><mo>(</mo><Sub base={<That/>} sub={<Txt>now</Txt>}/><mo>)</mo></>} bottom={<><Sub base={<mi>ℓ</mi>} sub={<Txt>ref</Txt>}/><mo>(</mo><Sub base={<That/>} sub={<Txt>now</Txt>}/><mo>)</mo></>}/>
+      <math display="block" className="sc-math-md sc-accent sc-forecast-math" aria-label="預測的最終 loss 是讓已跑完的一段曲線除以 c 之後，最貼近參考曲線的那個 c">
+        <mtable>
+          <mtr><mtd><Sub base={<Lhat/>} sub={<Txt>final</Txt>}/></mtd><mtd><mo>=</mo></mtd><mtd><munder><mo>arg min</mo><mi>c</mi></munder></mtd></mtr>
+          <mtr><mtd/><mtd/><mtd><munder><mo>∑</mo><mrow><That/><mo>∈</mo><mi>S</mi></mrow></munder>
+            <msup><mrow><mo>(</mo><Lt/><mo>/</mo><mi>c</mi><mo>−</mo><Sub base={<mi>ℓ</mi>} sub={<Txt>ref</Txt>}/><mo>(</mo><That/><mo>)</mo><mo>)</mo></mrow><mn>2</mn></msup></mtd></mtr>
+        </mtable>
       </math>
-      <p className="sc-small">示意：跑到 30%，loss 2.95，ℓ<sub>ref</sub>(0.3) = 1.12 → 約 2.63。</p>
-      <p className="sc-warn"><b>要注意</b>150M 有 66% 參數是 embedding，可能偏離塌縮曲線。</p>
+      <p className="sc-small">S 是已跑完的一段（例如 20%–30%）。找一個除數 c，讓這段曲線和參考曲線最貼合，c 就是預測的最終 loss（論文 §5）。</p>
+      <p className="sc-warn"><b>待驗證</b>150M 約 66% 參數是 embedding；Celerity 300M 的比例相近，仍然塌縮。</p>
     </div>
   </div>;
 }
@@ -406,8 +413,8 @@ function Lab6() {
 
 const experiments = [
   ['E1', '150M τ sweep（0.0125–0.2）', '曲線形狀隨 τ 規律變化', '約 5 次 150M'],
-  ['E2', '同一個 τ，用不同 (η, λ) 達成', '兩條曲線重合', '約 2 次 150M'],
-  ['E3', '150M → 750M ladder', '300M 以上塌縮；150M 偏離', '0：共用 ladder'],
+  ['E2', '同一個 τ，用不同 (η, λ) 達成（重現 Fig. 3）', '兩條曲線重合', '約 2 次 150M'],
+  ['E3', '150M → 750M ladder', '全部塌縮，包含 150M', '0：共用 ladder'],
   ['E4', '用部分曲線預測 750M 終點', '比純 L(C) 擬合更準', '0'],
 ];
 function Experiments({ step }: { step: number }) {

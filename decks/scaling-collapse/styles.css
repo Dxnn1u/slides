@@ -245,3 +245,9 @@
 [data-deck="scaling-collapse"] .sc-accent { color:var(--sc-blue); }
 [data-deck="scaling-collapse"] .sc-h { color:var(--sc-warm); }
 [data-deck="scaling-collapse"] .sc-hl { color:var(--sc-blue); }
+
+[data-deck="scaling-collapse"] .sc-claim-note { margin:20px 0 0; }
+[data-deck="scaling-collapse"] .sc-cases { list-style:none; margin:20px 0 0; padding:0; display:grid; gap:12px; }
+[data-deck="scaling-collapse"] .sc-cases li { display:flex; gap:20px; align-items:baseline; font-size:23px; line-height:1.5; color:var(--sc-gray); }
+[data-deck="scaling-collapse"] .sc-cases b { flex:none; width:170px; color:var(--sc-ink); font-weight:600; }
+[data-deck="scaling-collapse"] .sc-forecast-math { font-size:30px; }
