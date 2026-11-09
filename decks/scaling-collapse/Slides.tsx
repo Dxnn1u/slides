@@ -63,10 +63,10 @@ const shape = (t: number, a = 0.12, b = 0.06) => 1 + a * ((t + 0.04) ** -0.55 - 
 const misScaled = (t: number) => shape(t, 0.19, 0.015);
 const samples = range(0.05, 1, 64);
 const family = [
-  { label: '150M', tokens: 30, final: 3.45, color: '#5d6684' },
-  { label: '300M', tokens: 60, final: 3.15, color: '#7783b8' },
-  { label: '500M', tokens: 100, final: 2.93, color: '#8f9cdf' },
-  { label: '1B', tokens: 200, final: 2.66, color: '#a6b4ff' },
+  { label: '150M', tokens: 30, final: 3.45, color: '#a3acdf' },
+  { label: '300M', tokens: 60, final: 3.15, color: '#8c98da' },
+  { label: '500M', tokens: 100, final: 2.93, color: '#5f6ecf' },
+  { label: '1B', tokens: 200, final: 2.66, color: '#3f51c7' },
 ];
 
 const Schematic = () => <span className="sc-schematic">示意圖：合成曲線，不是實驗數據</span>;
@@ -84,13 +84,10 @@ const Lhat = () => <mover accent="true"><mi>L</mi><mo>^</mo></mover>;
 /* ---------- A. Problem ---------- */
 
 function Outline() {
-  const total = sections.reduce((sum, s) => sum + s.minutes, 0);
   return <ol className="sc-outline">
     {sections.map(s => <li key={s.key} data-main={s.key === 'B'}>
       <span className="sc-outline-key">{s.key}</span>
       <div><h2>{s.title}</h2><p>{s.note}</p></div>
-      <div className="sc-outline-bar" aria-hidden="true"><i style={{ width: `${(s.minutes / total) * 100}%` }}/></div>
-      <span className="sc-outline-time">{s.minutes.toFixed(1)} 分</span>
     </li>)}
   </ol>;
 }
@@ -200,7 +197,7 @@ function CollapseFigure({ step }: { step: number }) {
           yTicks={[[1, '1.0'], [1.2, '1.2'], [1.4, '1.4']]}/>
         {family.map(m => <path key={m.label} className="sc-curve sc-curve-thin"
           d={path(norm, samples.map(t => [t, shape(t)]))} style={{ stroke: m.color }}/>)}
-        <text className="sc-curve-label" x={px(norm, 0.62)} y={py(norm, 1.13)} style={{ fill: '#a6b4ff' }}>四條曲線重合</text>
+        <text className="sc-curve-label" x={px(norm, 0.62)} y={py(norm, 1.13)} style={{ fill: 'var(--sc-blue)' }}>四條曲線重合</text>
         <g className="sc-mis" data-on={step >= 2}>
           <path className="sc-curve sc-curve-mis" d={path(norm, samples.map(t => [t, misScaled(t)]))}/>
           <text className="sc-curve-label sc-mis-label" x={px(norm, 0.14)} y={py(norm, 1.47)}>τ 設錯的 300M</text>
@@ -290,7 +287,7 @@ const tppShape = (t: number, k: number) => (1 + 8 * k ** -0.3 * t ** -0.3) / (1 
 
 function Tpp() {
   const p: Panel = { x: 70, y: 20, w: 470, h: 300, x0: 0, x1: 1, y0: 1, y1: 2.2 };
-  const ks = [{ k: 20, c: '#efb39e' }, { k: 80, c: '#8f9cdf' }, { k: 200, c: '#a6b4ff' }];
+  const ks = [{ k: 20, c: '#c4613f' }, { k: 80, c: '#8c98da' }, { k: 200, c: '#3f51c7' }];
   const N = <msup><mi className="sc-h">N</mi><mrow><mo>−</mo><mi>α</mi></mrow></msup>;
   const k = <mi className="sc-hl">k</mi>;
   const ka = <msup>{k}<mrow><mo>−</mo><mi>α</mi></mrow></msup>;
@@ -324,9 +321,9 @@ function Tpp() {
 /** LR multipliers on t̂ ∈ [0, 1]: 1% warmup, then the decay shape. */
 const warm = (t: number, f: (t: number) => number) => (t < 0.01 ? t / 0.01 : f(t));
 const schedules = [
-  { name: 'Linear D2Z（論文用）', c: '#a6b4ff', f: (t: number) => warm(t, x => (1 - x) / 0.99) },
-  { name: 'Cosine', c: '#7783b8', f: (t: number) => warm(t, x => 0.5 * (1 + Math.cos(Math.PI * (x - 0.01) / 0.99))) },
-  { name: 'WSD', c: '#9bdeca', f: (t: number) => warm(t, x => (x < 0.8 ? 1 : (1 - x) / 0.2)) },
+  { name: 'Linear D2Z（論文用）', c: '#3f51c7', f: (t: number) => warm(t, x => (1 - x) / 0.99) },
+  { name: 'Cosine', c: '#8c98da', f: (t: number) => warm(t, x => 0.5 * (1 + Math.cos(Math.PI * (x - 0.01) / 0.99))) },
+  { name: 'WSD', c: '#1d8a6b', f: (t: number) => warm(t, x => (x < 0.8 ? 1 : (1 - x) / 0.2)) },
 ];
 
 function Schedule() {
