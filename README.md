@@ -44,26 +44,21 @@ npm start
 
 控制列有返回首頁入口，閒置三秒後隱藏；移動游標、觸碰畫面或用鍵盤聚焦即可顯示。減少動態效果偏好會停用跨頁轉場，保留講解步驟。
 
-Backend Workshop 的休息頁首次進入會開始十分鐘倒數。倒數按時間戳計算，離開該頁、背景分頁或重新整理均接續；到零停在 00:00。可暫停、繼續、重設，重設後需手動開始。首頁預覽不啟動倒數。
-
 ## 新增簡報
 
 詳見 [新增簡報指南](docs/authoring.md) 與 [播放器測試範例](tests/fixtures/example/deck.tsx)。共用播放程式位於 `src/presentation/`，簡報登錄於 `src/registry.ts`。
-
-Backend Workshop 位於 `decks/backend-workshop/`，其中的 `sources/`、`scripts/`、`docs/` 與 `examples/` 維持教材來源與產生流程。`npm run content` 會更新該簡報的衍生教材及網站字型。
 
 ## 驗證
 
 ```sh
 npm test
-npm run test:examples
 npm run typecheck
 npx playwright install chromium
 npm run build:test
 npm run test:browser
 ```
 
-Python 範例驗證需要 Python 3。瀏覽器測試使用獨立的 5274 端口與 `.preview-dist/`，不占用本機開發的 5173；測試建置額外登錄作者範例，正式建置只收錄已登錄的公開簡報。
+瀏覽器測試使用獨立的 5274 端口與 `.preview-dist/`，不占用本機開發的 5173；測試建置額外登錄作者範例，正式建置只收錄已登錄的公開簡報。
 
 本次結果與涵蓋範圍見 [網站驗證紀錄](docs/verification.md)。
 

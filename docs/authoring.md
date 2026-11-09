@@ -2,7 +2,7 @@
 
 新增 `decks/<slug>/deck.tsx` 與該簡報自己的 CSS，再在 `src/registry.ts` 登錄一個延遲載入入口。路由、播放控制與首頁會自動使用同一份簡報定義。
 
-實際簡報位於 `decks/titanfuzz/` 與 `decks/backend-workshop/`。測試用範例位於 `tests/fixtures/example/`，只在測試模式註冊。
+實際簡報位於 `decks/scaling-collapse/` 與 `decks/pytorch-basic/`。測試用範例位於 `tests/fixtures/example/`，只在測試模式註冊。
 
 ## 最小範例
 

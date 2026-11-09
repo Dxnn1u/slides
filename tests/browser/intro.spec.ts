@@ -75,7 +75,7 @@ test('intro supports mobile, reduced motion, direct links and scroll restoration
   const position = await page.evaluate(() => scrollY);
   await page.reload();
   await expect.poll(() => page.evaluate(() => scrollY)).toBe(position);
-  await page.goto('/titanfuzz?start=1');
+  await page.goto('/scaling-collapse?start=1');
   await expect(page.locator('.page-incoming')).toBeVisible();
   await page.goBack();
   await expect.poll(() => page.evaluate(() => scrollY)).toBe(position);

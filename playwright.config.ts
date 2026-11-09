@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: '.',
-  testMatch: ['tests/browser/*.spec.ts', 'decks/backend-workshop/tests/browser/*.spec.ts'],
+  testMatch: ['tests/browser/*.spec.ts'],
   fullyParallel: false, workers: 1, timeout: 240000,
   use: {
     baseURL: 'http://localhost:5274', headless: true, actionTimeout: 10000,
