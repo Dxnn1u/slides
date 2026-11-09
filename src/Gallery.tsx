@@ -131,7 +131,7 @@ export function Gallery() {
         <div className="intro-grain"/>
       </div>
       <motion.h1 id="intro-title" className="intro-signature" style={{ opacity: reduced ? 1 : signatureOpacity }}>
-        asciibase64<span className="intro-cursor" aria-hidden="true"/>
+        Dxnn1u<span className="intro-cursor" aria-hidden="true"/>
       </motion.h1>
       <motion.a className="intro-explore" href="#collection" tabIndex={hintVisible || reduced ? 0 : -1}
         style={{ opacity: reduced ? 1 : hintOpacity, pointerEvents: hintVisible || reduced ? 'auto' : 'none' }}

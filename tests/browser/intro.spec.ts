@@ -8,7 +8,7 @@ test('signature intro scrolls reversibly beneath the collection', async ({ page 
   const signature = page.locator('.intro-signature');
   const collection = page.locator('#collection');
   const cursor = page.locator('.intro-cursor');
-  await expect(signature).toHaveText('asciibase64');
+  await expect(signature).toHaveText('Dxnn1u');
   await expect(signature).toHaveCSS('opacity', '1');
   await expect(cursor).toHaveAttribute('aria-hidden', 'true');
   await expect(cursor).toHaveCSS('animation-duration', '1.4s');
@@ -18,7 +18,7 @@ test('signature intro scrolls reversibly beneath the collection', async ({ page 
   await expect(intro).toHaveCSS('background-color', 'rgb(11, 13, 16)');
   await expect(signature).toHaveCSS('color', 'rgb(214, 217, 221)');
   await expect(cursor).toHaveCSS('background-color', 'rgb(170, 177, 186)');
-  await expect(page.getByRole('heading', { level: 1, name: 'asciibase64', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1, name: 'Dxnn1u', exact: true })).toHaveCount(1);
   await expect(page.locator('.intro-art')).toHaveAttribute('aria-hidden', 'true');
   await page.screenshot({ path: info.outputPath('intro-desktop.png') });
   await page.evaluate(() => window.scrollTo(0, 292));
@@ -87,7 +87,7 @@ test('architectural background stays still and only the cursor animates', async 
   await page.goto('/');
   const art = page.locator('.intro-art');
   const signature = page.locator('.intro-signature');
-  await expect(signature).toHaveText('asciibase64');
+  await expect(signature).toHaveText('Dxnn1u');
   await expect(signature).toHaveCSS('opacity', '1');
   await expect(page.locator('.intro-overprint, .intro-panel, .intro-letterform')).toHaveCount(0);
   await expect(art).toHaveCSS('pointer-events', 'none');

@@ -1,5 +1,7 @@
 # Slides
 
+本站的簡報框架與設計來自 [ilsao/slides](https://github.com/ilsao/slides)（作者：asciibase64）。
+
 React／Vite 多簡報網站。首頁以真實投影片的靜態拼貼展示簡報；每份簡報可自行設計版型、字型、舞台比例、頁內動畫與跨頁轉場。
 
 首頁先呈現黑色署名開場與閃動游標，向下捲動時淺色收藏頁覆上；也可點選「探索簡報」或使用 `/#collection` 直接前往收藏。收藏以雙欄作品集同時展示多份簡報，900px 以下使用單欄。第一列直接可見，後續各列隨捲動位置逐漸顯現，完整顯示後保持可見。斜向拼貼與投影片內容保持靜態，啟用減少動態效果時停止游標閃動與開場動效，並直接呈現全部卡片。
@@ -16,8 +18,8 @@ npm run dev
 ```
 
 - 首頁：http://localhost:5173/
-- TitanFuzz：http://localhost:5173/titanfuzz
-- Backend Workshop：http://localhost:5173/backend-workshop
+- Scaling with Collapse：http://localhost:5173/scaling-collapse
+- PyTorch basic：http://localhost:5173/pytorch-basic
 
 正式建置與本機預覽：
 
@@ -71,9 +73,9 @@ Python 範例驗證需要 Python 3。瀏覽器測試使用獨立的 5274 端口�
 
 已提供 [部署工作流程](.github/workflows/pages.yml)：推送到 `main` 時自動安裝依賴、執行單元測試、建置並部署，也可在 Actions 頁面手動執行。建置使用 Node.js 22，並依 GitHub Pages 設定自動套用網站的 base path，支援專案子路徑及自訂網域。
 
-首次使用時，到 repository 的 **Settings → Pages → Build and deployment → Source** 選擇 **GitHub Actions**，再將這些變更推送到 `main`。部署成功後，網址會顯示在 Actions 的 `github-pages` environment；此 repository 的預設網址為 `https://ilsao.github.io/slides/`。
+首次使用時，到 repository 的 **Settings → Pages → Build and deployment → Source** 選擇 **GitHub Actions**，再將這些變更推送到 `main`。部署成功後，網址會顯示在 Actions 的 `github-pages` environment；此 repository 的預設網址為 `https://dxnn1u.github.io/slides/`。
 
-簡報路徑為 `/<slug>`，部署到此 repository 後，例如 `https://ilsao.github.io/slides/backend-workshop`。
+簡報路徑為 `/<slug>`，部署到此 repository 後，例如 `https://dxnn1u.github.io/slides/scaling-collapse`。
 
 工作流程會將首頁複製為 `404.html`，讓 GitHub Pages 在直接開啟或重新整理 `/<slug>` 時載入前端路由。這些網址仍會回傳 HTTP 404，但簡報可正常顯示與操作。其他靜態主機可使用下方的路由回退設定，回傳 HTTP 200。
 

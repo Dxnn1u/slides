@@ -179,11 +179,11 @@ test('a delayed deck download keeps the fresh-start signal until initialization 
 
 test('old presenter and unknown routes have usable destinations', async ({ page }) => {
   await page.goto('/presenter'); await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('heading', { name: 'asciibase64', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Dxnn1u', level: 1 })).toBeVisible();
   for (const path of ['/missing', '/missing/nested']) {
     await page.goto(path); await expect(page.getByRole('heading', { name: '找不到頁面' })).toBeVisible();
     await page.getByRole('link', { name: '返回首頁 →' }).click();
-    await expect(page.getByRole('heading', { name: 'asciibase64', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dxnn1u', level: 1 })).toBeVisible();
   }
 });
 

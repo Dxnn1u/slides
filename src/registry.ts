@@ -4,16 +4,8 @@ export type DeckEntry = { id: string; title: string; load: () => Promise<DeckDef
 
 export const deckEntries: DeckEntry[] = [
   {
-    id: 'titanfuzz', title: 'TitanFuzz',
-    load: () => import('../decks/titanfuzz/deck').then(module => module.titanFuzzDeck),
-  },
-  {
     id: 'scaling-collapse', title: 'Scaling with Collapse',
     load: () => import('../decks/scaling-collapse/deck').then(module => module.scalingCollapseDeck),
-  },
-  {
-    id: 'backend-workshop', title: 'Backend Workshop',
-    load: () => import('../decks/backend-workshop/src/definition').then(module => module.backendWorkshop),
   },
   {
     id: 'pytorch-basic', title: 'PyTorch basic',
