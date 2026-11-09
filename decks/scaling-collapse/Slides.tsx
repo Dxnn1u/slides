@@ -106,7 +106,7 @@ function CollapseFigure({ step }: { step: number }) {
 function Problem() {
   return <div className="sc-columns sc-three">
     <div><span className="sc-index">01</span><h2>Lab6 的限制</h2><p>約 60 次小 run，<br/>要預測 1B／200B 的結果，<br/>並在開跑前交出預測。</p></div>
-    <div><span className="sc-index">02</span><h2>讀書會的目標</h2><p>1B 對標 Qwen3-4B，<br/>同時降低對 CUDA 的依賴。</p></div>
+    <div><span className="sc-index">02</span><h2>Cerulean 的目標</h2><p>1B 對標 Qwen3-4B，<br/>同時降低對 CUDA 的依賴。</p></div>
     <div><span className="sc-index">03</span><h2>傳統 scaling law</h2><p>只預測終點的一個數字。<br/><b>能不能預測整條曲線？</b></p></div>
   </div>;
 }
@@ -330,7 +330,7 @@ export function Slide(r: SlideRenderProps) {
         <h1 className="sc-cover-title" lang="en">Scaling with Collapse</h1>
         <h2>用整條 loss 曲線，預測大模型的訓練</h2>
         <p className="sc-cover-sub">Bergsma et al., ICLR 2026 · 結合 Lab6 與 Upwash 的實驗規劃</p>
-        <p className="sc-cover-author">杜晟甫 <span>Cerulean Labs 讀書會</span></p>
+        <p className="sc-cover-author">杜晟甫 <span>Cerulean Labs</span></p>
       </div>}
       {id === 'problem' && <>{title('小規模實驗，怎麼可靠地外推？')}{body(<Problem/>)}</>}
       {id === 'collapse' && <>{title(<>Collapse：形狀相同，<span className="sc-muted">不是 loss 相同</span></>)}{body(<CollapseFigure step={r.step}/>)}</>}

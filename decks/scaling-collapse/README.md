@@ -2,7 +2,7 @@
 
 13 頁繁體中文報告、17 個放映狀態，版本 2。預覽：`/scaling-collapse?start=1`。
 
-報告 Bergsma et al., ICLR 2026 的 *Scaling with Collapse*，並連結到 Lab6（1B／200B 預測）、讀書會的長期目標，以及在 Upwash 上規劃的實驗。尚未有實驗結果，所以第 10 頁定位為事先登記的假說。
+報告 Bergsma et al., ICLR 2026 的 *Scaling with Collapse*，並連結到 Lab6（1B／200B 預測）、Cerulean 的長期目標，以及在 Upwash 上規劃的實驗。尚未有實驗結果，所以第 11 頁定位為事先登記的假說。
 
 ## 頁面與節奏
 
