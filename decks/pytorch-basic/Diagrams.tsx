@@ -84,32 +84,6 @@ y[1, 2]              # 5 + 1×4 + 2×1 = 11`;
   </div>;
 }
 
-/* ------------------------------------------------------------------ SIMD */
-
-export function SimdScene({ step }: { step: number }) {
-  const lanes = Array.from({ length: 8 }, (_, i) => i);
-  return <div className="pb-simd">
-    <div className="pb-simd-panel" data-active={step === 0}>
-      <h3>Scalar</h3>
-      <p className="pb-muted">one number per instruction</p>
-      <div className="pb-scalar-ops">{lanes.map(i =>
-        <div key={i}><span>a{i}</span><b>+</b><span>b{i}</span><em>add #{i + 1}</em></div>)}</div>
-      <p className="pb-simd-count"><strong>8</strong> add instructions</p>
-    </div>
-    <div className="pb-simd-panel" data-active={step >= 1} data-pending={step < 1}>
-      <h3>SIMD</h3>
-      <p className="pb-muted">8 numbers packed into one 256-bit vector register</p>
-      <div className="pb-vector">
-        <div className="pb-reg"><label>a</label>{lanes.map(i => <span key={i}>a{i}</span>)}</div>
-        <div className="pb-reg pb-reg-op"><label/>{lanes.map(i => <span key={i}>+</span>)}</div>
-        <div className="pb-reg"><label>b</label>{lanes.map(i => <span key={i}>b{i}</span>)}</div>
-        <div className="pb-reg pb-reg-out"><label>c</label>{lanes.map(i => <span key={i}>c{i}</span>)}</div>
-      </div>
-      <p className="pb-simd-count"><strong>1</strong> instruction · each slot is a <b>lane</b></p>
-    </div>
-  </div>;
-}
-
 /* ------------------------------------------------------------------ Float bit layout */
 
 const BIT = 30;
@@ -135,6 +109,43 @@ export function BitLayout() {
       <span><i className="pb-bit-man"/>mantissa: precision (how many digits)</span>
     </div>
   </div>;
+}
+
+/* ------------------------------------------------------------------ dtype trade-off radar */
+
+type RadarDtype = { name: string; tone: string; values: [number, number, number] };
+/* [bandwidth, range, precision], normalised: numbers per 64 B ÷ 32, log10(max) ÷ log10(fp32 max), decimal digits ÷ fp32 digits */
+export const radarDtypes: RadarDtype[] = [
+  { name: 'fp32', tone: 'ink', values: [16 / 32, 1, 1] },
+  { name: 'bf16', tone: 'blue', values: [1, 1, 2.41 / 7.22] },
+  { name: 'fp16', tone: 'purple', values: [1, 4.82 / 38.53, 3.31 / 7.22] },
+];
+const RADAR_AXES = [
+  { label: 'Memory bandwidth', sub: 'numbers per transfer', angle: 150 },
+  { label: 'Range', sub: 'largest / smallest value', angle: 30 },
+  { label: 'Precision', sub: 'significant digits', angle: -90 },
+];
+
+export function DtypeRadar({ shown }: { shown: number }) {
+  const cx = 330, cy = 290, R = 220;
+  const pt = (axis: number, v: number) => {
+    const a = RADAR_AXES[axis].angle * Math.PI / 180, r = R * Math.max(v, 0.06);
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  };
+  const ring = (v: number) => RADAR_AXES.map((_, i) => pt(i, v).join(',')).join(' ');
+  return <svg viewBox="-40 0 740 560" className="pb-radar">
+    {[0.25, 0.5, 0.75, 1].map(v => <polygon key={v} points={ring(v)} className="pb-radar-grid"/>)}
+    {RADAR_AXES.map((axis, i) => {
+      const [x, y] = pt(i, 1), [lx, ly] = pt(i, 1.16);
+      return <g key={axis.label}>
+        <line x1={cx} y1={cy} x2={x} y2={y} className="pb-radar-axis"/>
+        <text x={lx} y={ly + (i === 2 ? -14 : 14)} textAnchor="middle" className="pb-radar-label">{axis.label}</text>
+        <text x={lx} y={ly + (i === 2 ? 10 : 38)} textAnchor="middle" className="pb-radar-sub">{axis.sub}</text>
+      </g>;
+    })}
+    {radarDtypes.map((dt, k) => <polygon key={dt.name} data-on={k < shown}
+      points={dt.values.map((v, i) => pt(i, v).join(',')).join(' ')} className={`pb-radar-shape pb-radar-${dt.tone}`}/>)}
+  </svg>;
 }
 
 /* ------------------------------------------------------------------ Network */

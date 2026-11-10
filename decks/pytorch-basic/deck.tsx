@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { defineDeck, fadeTransition, type SlideRenderProps } from '../../src/presentation';
 import { Code } from './Code';
+import { NdArraySlide, SIMD_ZOOM_STEPS } from './SimdZoom';
 import {
-  ActivationPlot, activations, BitLayout, ChainRule, NegLogPlot, NetworkDiagram, SimdScene, StorageScene,
+  ActivationPlot, activations, BitLayout, ChainRule, DtypeRadar, NegLogPlot, NetworkDiagram, radarDtypes, StorageScene,
 } from './Diagrams';
 import mnistSamples from './assets/mnist-samples.png';
 import mnistPixels from './assets/mnist-5-pixels.png';
@@ -13,17 +14,26 @@ const pages = [
   ['cover', 'PyTorch basic', 1, ''],
   ['why', 'Why AI in an HPC training?', 1, 'Introduction'],
   ['roadmap', 'Today', 1, 'Introduction'],
+  ['part-before', 'Before we begin', 1, ''],
   ['numpy', 'What is NumPy', 1, 'Before we begin'],
-  ['storage', 'How is a tensor stored in memory?', 4, 'Before we begin'],
-  ['views', 'Views only change metadata', 1, 'Before we begin'],
-  ['ndarray', 'Why we like ndarray', 1, 'Before we begin'],
-  ['simd', 'What is SIMD?', 2, 'Before we begin'],
+  ['ndarray', 'Why we like ndarray', SIMD_ZOOM_STEPS, 'Before we begin'],
   ['dtype-bits', 'What is dtype', 1, 'Before we begin'],
   ['dtype-table', 'Common dtypes', 1, 'Before we begin'],
+  ['dtype-tradeoff', 'Choosing a dtype is a trade-off', 3, 'Before we begin'],
   ['fp64', 'Why not double precision?', 1, 'Before we begin'],
-  ['tensor', 'What is a Tensor', 1, 'Tensor & PyTorch'],
-  ['positioning', 'Where PyTorch sits', 1, 'Tensor & PyTorch'],
-  ['related', 'PyTorch and related works', 1, 'Tensor & PyTorch'],
+  ['recap-before', 'Recap: Before we begin', 1, 'Before we begin'],
+  ['part-tensor', 'Tensor & PyTorch', 1, ''],
+  ['sub-tensor', 'Tensor', 1, ''],
+  ['tensor', 'What is a Tensor', 1, 'Tensor & PyTorch · Tensor'],
+  ['tensor-dims', 'A tensor is a multi-dimensional array', 1, 'Tensor & PyTorch · Tensor'],
+  ['storage', 'How is a tensor stored in memory?', 4, 'Tensor & PyTorch · Tensor'],
+  ['views', 'Views only change metadata', 1, 'Tensor & PyTorch · Tensor'],
+  ['tensor-batch', 'A batch of images: [32, 3, 28, 28]', 1, 'Tensor & PyTorch · Tensor'],
+  ['sub-pytorch', 'PyTorch', 1, ''],
+  ['positioning', 'Where PyTorch sits', 1, 'Tensor & PyTorch · PyTorch'],
+  ['related', 'PyTorch and related works', 1, 'Tensor & PyTorch · PyTorch'],
+  ['recap-tensor', 'Recap: Tensor & PyTorch', 1, 'Tensor & PyTorch'],
+  ['part-mlp', 'MLP', 1, ''],
   ['mnist', 'Dataset: MNIST', 1, 'MLP · Overview'],
   ['pixels', 'An image is just numbers', 1, 'MLP · Overview'],
   ['task', 'Define the task', 2, 'MLP · Overview'],
@@ -37,6 +47,7 @@ const pages = [
   ['combine', '2. How to combine layers', 1, 'MLP · Build structure'],
   ['activation', '3. Activation', 2, 'MLP · Build structure'],
   ['activations', '3. Common activation functions', 1, 'MLP · Build structure'],
+  ['recap-build', 'Recap: Build structure', 1, 'MLP · Build structure'],
   ['forward', '4. Forward', 1, 'MLP · Run training'],
   ['loss', '5. Loss — why not accuracy?', 2, 'MLP · Run training'],
   ['softmax', '5. From logits to probability: softmax', 1, 'MLP · Run training'],
@@ -48,6 +59,8 @@ const pages = [
   ['update', '7. Update', 1, 'MLP · Run training'],
   ['optimizer', '7. Optimizers', 1, 'MLP · Run training'],
   ['train-loop', '8. Train loop', 1, 'MLP · Run training'],
+  ['recap-train', 'Recap: Run training', 1, 'MLP · Run training'],
+  ['part-lab', 'Lab', 1, ''],
   ['lab', 'Lab', 1, 'Lab'],
   ['references', 'References', 1, 'Reference'],
   ['closing', 'Thanks', 1, ''],
@@ -69,7 +82,7 @@ function Bullets({ items }: { items: ReactNode[] }) {
 function Why() {
   return <div className="pb-stack">
     <div className="pb-three">
-      {[['HiPAC', 'Taiwan’s largest HPC contest'], ['ISC', 'Student Cluster Competition'], ['APAC', 'HPC-AI Competition']].map(([n, d]) =>
+      {[['HiPAC', 'Taiwan’s largest HPC contest'], ['ISC', 'One of the world’s three major student HPC competitions'], ['APAC', 'A rising Asia-Pacific competition — the region’s second-largest student HPC contest']].map(([n, d]) =>
         <div className="pb-card" key={n}><h3>{n}</h3><p className="pb-muted">{d}</p></div>)}
     </div>
     <p className="pb-lead">Each of them has <b>at least one AI task</b> — usually about LLMs:</p>
@@ -80,10 +93,10 @@ function Why() {
 
 function Roadmap() {
   const items = [
-    ['01', 'Before we begin', 'NumPy · memory layout · dtype'],
-    ['02', 'Tensor & PyTorch', 'what a tensor adds · where PyTorch sits'],
+    ['01', 'Before we begin', 'NumPy · SIMD · dtype'],
+    ['02', 'Tensor & PyTorch', 'multi-dimensional arrays · memory layout · PyTorch'],
     ['03', 'MLP', '8 steps: build structure → run training'],
-    ['04', 'Lab', 'Base & Advanced'],
+    ['04', 'Lab', 'Basic & Advanced'],
   ];
   return <div className="pb-roadmap">{items.map(([n, t, d]) =>
     <div key={n}><span>{n}</span><h2>{t}</h2><p>{d}</p></div>)}</div>;
@@ -103,8 +116,14 @@ function NumPy() {
       <div className="pb-tree-root">ndarray</div>
       <div className="pb-tree-branch">
         <div><h3>data buffer</h3><p className="pb-muted">raw bytes in memory</p></div>
-        <div><h3>metadata</h3><ul><li>dtype</li><li>shape</li><li className="pb-hl">strides</li><li className="pb-hl">offset</li></ul></div>
+        <div><h3>metadata</h3><dl className="pb-meta">
+          <dt>dtype</dt><dd>what type each element is</dd>
+          <dt>shape</dt><dd>how many elements along each dimension</dd>
+          <dt className="pb-hl">strides</dt><dd>how far to jump to reach the next element</dd>
+          <dt className="pb-hl">offset</dt><dd>where the data starts</dd>
+        </dl></div>
       </div>
+      <p className="pb-small">strides &amp; offset: we will see them in action once we meet tensors.</p>
     </div>
   </div>;
 }
@@ -130,47 +149,19 @@ function Views() {
   </div>;
 }
 
-function NdArray() {
-  return <div className="pb-two">
-    <div>
-      <h3 className="pb-h3">What is an ndarray</h3>
-      <Bullets items={[
-        <>N-dimensional array, the core data structure of NumPy</>,
-        <><b>Homogeneous</b>: every element has the same dtype</>,
-        <><b>Fixed size</b>: the length is fixed once created</>,
-      ]}/>
-      <h3 className="pb-h3">Automatic type promotion</h3>
-      <Code size="sm" source={`np.array([1, 2]) + np.array([0.5, 0.5])
+function NdArray({ step }: { step: number }) {
+  return <NdArraySlide step={step} left={<>
+    <h3 className="pb-h3">What is an ndarray</h3>
+    <Bullets items={[
+      <>N-dimensional array, the core data structure of NumPy</>,
+      <><b>Homogeneous</b>: every element has the same dtype</>,
+      <><b>Fixed size</b>: the length is fixed once created</>,
+    ]}/>
+    <h3 className="pb-h3">Automatic type promotion</h3>
+    <Code size="sm" source={`np.array([1, 2]) + np.array([0.5, 0.5])
 # -> float64`}/>
-      <p className="pb-note">Not always lossless: very large integers lose precision as float64.</p>
-    </div>
-    <div>
-      <h3 className="pb-h3">Why it is fast</h3>
-      <div className="pb-reasons">
-        {[['Contiguous', 'homogeneous → one contiguous block of memory'],
-          ['Compiled loops', 'loops run in C, not in the Python interpreter (vectorization)'],
-          ['Cache friendly', 'neighbours in memory are loaded together'],
-          ['SIMD · BLAS', 'hardware vector instructions and tuned libraries']].map(([h, p]) =>
-          <div key={h}><h3>{h}</h3><p>{p}</p></div>)}
-      </div>
-    </div>
-  </div>;
-}
-
-function Simd({ step }: { step: number }) {
-  return <div className="pb-stack">
-    <SimdScene step={step}/>
-    <R on={step >= 1}>
-      <table className="pb-table pb-simd-table">
-        <thead><tr><th>Instruction set</th><th>Register width</th><th>float32 per register</th></tr></thead>
-        <tbody>
-          <tr><td>SSE / ARM NEON</td><td>128 bit</td><td>4</td></tr>
-          <tr><td>AVX2</td><td>256 bit</td><td>8</td></tr>
-          <tr><td>AVX-512</td><td>512 bit</td><td>16</td></tr>
-        </tbody>
-      </table>
-    </R>
-  </div>;
+    <p className="pb-note">Not always lossless: very large integers lose precision as float64.</p>
+  </>}/>;
 }
 
 function DtypeTable() {
@@ -189,6 +180,31 @@ function DtypeTable() {
   </table>;
 }
 
+function DtypeTradeoff({ step }: { step: number }) {
+  const rows = [
+    ['fp32', '16', '3.4 × 10³⁸', '≈ 7.2'],
+    ['bf16', '32', '3.4 × 10³⁸', '≈ 2.4'],
+    ['fp16', '32', '6.6 × 10⁴', '≈ 3.3'],
+  ];
+  return <div className="pb-tradeoff">
+    <DtypeRadar shown={step + 1}/>
+    <div className="pb-tradeoff-side">
+      <p className="pb-lead">No dtype wins on all three. Picking one means giving something up.</p>
+      <table className="pb-table pb-tradeoff-table">
+        <thead><tr><th>dtype</th><th>per 64 B</th><th>max value</th><th>decimal digits</th></tr></thead>
+        <tbody>{rows.map((r, i) => <tr key={r[0]} data-on={i <= step}>
+          <td><i className={`pb-swatch pb-radar-${radarDtypes[i].tone}`}/>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td>
+        </tr>)}</tbody>
+      </table>
+      <div className="pb-tradeoff-notes">
+        <p data-on={step >= 1}><b>fp32 → bf16</b>: same range, twice as many numbers per transfer, about ⅓ of the precision.</p>
+        <p data-on={step >= 2}><b>bf16 vs fp16</b>: same memory — bf16 keeps range, fp16 keeps precision.</p>
+      </div>
+      <p className="pb-note">Bandwidth is fixed in bytes per second, so smaller numbers move faster (and fit more SIMD lanes).</p>
+    </div>
+  </div>;
+}
+
 function Fp64() {
   return <div className="pb-three pb-big-three">
     <div><span>01</span><h2>More precision than we need</h2><p>Training is already noisy: every batch only approximates the full dataset.</p></div>
@@ -200,7 +216,7 @@ function Fp64() {
 function Tensor() {
   return <div className="pb-two">
     <div>
-      <p className="pb-lead">PyTorch’s version of ndarray, with two extra abilities:</p>
+      <p className="pb-lead">A <b>multi-dimensional array</b> — basically PyTorch’s version of ndarray — with two extra abilities:</p>
       <div className="pb-ability"><span>device</span><p>it can run on a GPU</p></div>
       <div className="pb-ability"><span>requires_grad</span><p>it can track gradients</p></div>
     </div>
@@ -211,6 +227,57 @@ x.device         # cpu
 x.requires_grad  # False
 
 x = x.to("cuda") # move to GPU`}/>
+  </div>;
+}
+
+function TensorDims() {
+  const levels: [string, string, string, string, number][] = [
+    ['0-D', 'scalar', 'loss', '[]', 0],
+    ['1-D', 'vector', 'fc1.bias', '[256]', 1],
+    ['2-D', 'matrix', 'fc1.weight', '[256, 784]', 2],
+    ['3-D', '', 'one RGB image', '[3, 28, 28]', 3],
+    ['4-D', '', 'a batch of RGB images', '[32, 3, 28, 28]', 4],
+  ];
+  const cell = (k: number) => <i key={k}/>;
+  const grid = (n: number) => <b className="pb-dim-grid">{Array.from({ length: n }, (_, k) => cell(k))}</b>;
+  const visual = (d: number) => {
+    if (d === 0) return <span className="pb-dim-vis"><b className="pb-dim-one">{cell(0)}</b></span>;
+    if (d === 1) return <span className="pb-dim-vis"><b className="pb-dim-row">{Array.from({ length: 4 }, (_, k) => cell(k))}</b></span>;
+    if (d === 2) return <span className="pb-dim-vis">{grid(16)}</span>;
+    if (d === 3) return <span className="pb-dim-vis"><span className="pb-dim-stack">{[0, 1, 2].map(c => <span key={c} className={`pb-ch pb-ch-${c}`}>{grid(16)}</span>)}</span></span>;
+    return <span className="pb-dim-vis pb-dim-batch">{[0, 1, 2].map(n => <span key={n} className="pb-dim-stack">{[0, 1, 2].map(c => <span key={c} className={`pb-ch pb-ch-${c}`}>{grid(9)}</span>)}</span>)}</span>;
+  };
+  return <div className="pb-stack">
+    <div className="pb-dims">{levels.map(([d, name, example, shape, n]) => <div key={d}>
+      {visual(n)}
+      <h3>{d}{name && <span> · {name}</span>}</h3>
+      <code>{shape}</code>
+      <p>{example}</p>
+    </div>)}</div>
+    <p className="pb-note">The number of dimensions is <code>x.ndim</code>; the size of each one is <code>x.shape</code>. Beyond 4-D: a batch of videos is <code>[B, T, C, H, W]</code>, and an LLM’s hidden states are <code>[batch, seq_len, hidden]</code>.</p>
+  </div>;
+}
+
+function TensorBatch() {
+  const axes = [['dim 0', 'N', '32', 'batch: which image'], ['dim 1', 'C', '3', 'channel: R / G / B'], ['dim 2', 'H', '28', 'height: which row'], ['dim 3', 'W', '28', 'width: which column']];
+  return <div className="pb-two pb-two-batch">
+    <div>
+      <div className="pb-axes">{axes.map(([dim, letter, size, desc]) => <div key={dim}>
+        <span>{dim}</span><strong>{letter} = {size}</strong><p>{desc}</p>
+      </div>)}</div>
+      <p className="pb-note">PyTorch puts channels first (<b>NCHW</b>). MNIST is grayscale, so C = 1: that is the <code>(B, 1, 28, 28)</code> we will see from the DataLoader.</p>
+      <p className="pb-note">32 × 3 × 28 × 28 = <b>75,264</b> numbers ≈ 0.3 MB in fp32 — still one contiguous block in storage.</p>
+    </div>
+    <Code title="python" size="sm" source={`x = torch.randn(32, 3, 28, 28)
+x.ndim          # 4
+x.numel()       # 75264
+
+x[0].shape      # [3, 28, 28]   image 0
+x[0, 1].shape   # [28, 28]      image 0, green
+x[:, 0].shape   # [32, 28, 28]  red, all images
+
+x.stride()      # (2352, 784, 28, 1)
+                # next image = skip 3×28×28 elements`}/>
   </div>;
 }
 
@@ -607,7 +674,7 @@ function Lab() {
       <div className="pb-card"><span className="pb-tag">Basic</span><h3>For everyone</h3><p className="pb-muted">TBD</p></div>
       <div className="pb-card pb-card-purple"><span className="pb-tag">Advanced</span><h3>Already familiar with PyTorch &amp; DNNs?</h3><p className="pb-muted">TBD</p></div>
     </div>
-    <p className="pb-note">Companion notebook: <code>lecture6_pytorch_basic.ipynb</code> — runs on Colab or Kaggle, CPU or GPU.</p>
+    <p className="pb-note">Companion notebook: <a className="pb-inline-link" href={NOTEBOOK_URL} target="_blank" rel="noreferrer"><code>lecture6_pytorch_basic.ipynb</code></a> — runs on Colab or Kaggle, CPU or GPU.</p>
   </div>;
 }
 
@@ -627,13 +694,129 @@ function References({ preview }: { preview: boolean }) {
   </li>)}</ul>;
 }
 
+/* ------------------------------------------------------------------ structure */
+
+const parts = [
+  { id: 'part-before', n: '01', title: 'Before we begin', question: 'What makes numerical computing in Python fast?', topics: 'NumPy · ndarray · SIMD · dtype' },
+  { id: 'part-tensor', n: '02', title: 'Tensor & PyTorch', question: 'What is a tensor, and what does PyTorch give us on top of it?', topics: '' },
+  { id: 'part-mlp', n: '03', title: 'MLP', question: 'How do we teach a network to read handwritten digits?', topics: '' },
+  { id: 'part-lab', n: '04', title: 'Lab', question: 'Your turn: train it yourself.', topics: 'Basic · Advanced' },
+] as const;
+
+const mlpSteps = ['Linear', 'Stacking', 'Activation', 'Forward', 'Loss', 'Backward', 'Update', 'Loop'];
+const stepOf: Partial<Record<PageId, number>> = {
+  data: 1, neuron: 1, layer: 1, hyper: 1, stacking: 2, combine: 2, activation: 3, activations: 3, 'recap-build': 3,
+  forward: 4, loss: 5, softmax: 5, 'softmax-vs': 5, 'cross-entropy': 5,
+  'backward-why': 6, 'chain-rule': 6, backprop: 6, update: 7, optimizer: 7, 'train-loop': 8, 'recap-train': 8,
+};
+
+function StepBar({ current, recap }: { current: number; recap: boolean }) {
+  return <ol className="pb-stepbar" aria-label="MLP steps">
+    {mlpSteps.map((name, i) => {
+      const n = i + 1;
+      const state = recap ? (n <= current ? 'done' : 'todo') : n === current ? 'current' : n < current ? 'done' : 'todo';
+      return <li key={name} data-state={state} data-group={n <= 3 ? 'build' : 'run'}><span>{n}</span>{name}</li>;
+    })}
+  </ol>;
+}
+
+function PartDivider({ id }: { id: PageId }) {
+  const part = parts.find(p => p.id === id)!;
+  return <div className="pb-part">
+    <div className="pb-part-main">
+      <span className="pb-part-n">{part.n}</span>
+      <h1>{part.title}</h1>
+      <p className="pb-part-q">{part.question}</p>
+      {part.topics && <p className="pb-part-topics">{part.topics}</p>}
+      {id === 'part-tensor' && <div className="pb-part-subs">
+        <div><span>A</span><h3>Tensor</h3><p>multi-dimensional arrays · stride &amp; offset · views</p></div>
+        <div><span>B</span><h3>PyTorch</h3><p>where it sits · related frameworks</p></div>
+      </div>}
+      {id === 'part-mlp' && <div className="pb-part-steps">
+        <div data-group="build"><h3>Build structure</h3><p>{mlpSteps.slice(0, 3).map((s, i) => <span key={s}><b>{i + 1}</b>{s}</span>)}</p></div>
+        <div data-group="run"><h3>Run training</h3><p>{mlpSteps.slice(3).map((s, i) => <span key={s}><b>{i + 4}</b>{s}</span>)}</p></div>
+      </div>}
+    </div>
+    <ol className="pb-part-nav">{parts.map(p => <li key={p.id} data-state={p.id === id ? 'current' : parts.findIndex(q => q.id === p.id) < parts.findIndex(q => q.id === id) ? 'done' : 'todo'}>
+      <span>{p.n}</span>{p.title}
+    </li>)}</ol>
+  </div>;
+}
+
+const subTopics = {
+  'sub-tensor': { title: 'Tensor', question: 'What exactly is a tensor, and how is it laid out in memory?', topics: 'multi-dimensional arrays · stride & offset · views' },
+  'sub-pytorch': { title: 'PyTorch', question: 'We have tensors. Why do we still need a framework?', topics: 'where it sits · related frameworks' },
+} as const;
+
+function SubDivider({ id }: { id: keyof typeof subTopics }) {
+  const sub = subTopics[id];
+  const order = Object.keys(subTopics) as (keyof typeof subTopics)[];
+  const at = order.indexOf(id);
+  return <div className="pb-sub">
+    <p className="pb-sub-kicker">02 · Tensor &amp; PyTorch</p>
+    <div className="pb-sub-track">
+      {order.map((key, i) => <span key={key} data-state={i < at ? 'done' : i === at ? 'current' : 'todo'}>
+        {i > 0 && <i/>}<b>{'AB'[i]}</b>{subTopics[key].title}
+      </span>)}
+    </div>
+    <h1>{sub.title}</h1>
+    <p className="pb-sub-q">{sub.question}</p>
+    <p className="pb-part-topics">{sub.topics}</p>
+  </div>;
+}
+
+const recaps: Partial<Record<PageId, [ReactNode, ReactNode][]>> = {
+  'recap-before': [
+    [<>An <b>ndarray</b> is one data buffer + metadata.</>, <>dtype, shape, strides, offset — the metadata decides how the bytes are read.</>],
+    [<>It is fast because it is <b>homogeneous and contiguous</b>.</>, <>Loops run in compiled C, memory is cache friendly, and SIMD handles many elements per instruction.</>],
+    [<><b>dtype</b> trades range, precision and memory.</>, <>fp32 is the default; bf16 / fp16 for speed; fp64 is rarely needed.</>],
+  ],
+  'recap-tensor': [
+    [<>A tensor is a <b>multi-dimensional array</b> + <code>device</code> + <code>requires_grad</code>.</>, <><code>[32, 3, 28, 28]</code> = [N, C, H, W]: images, channels, rows, columns.</>],
+    [<>Its data is one <b>1-D storage</b>; shape, stride and offset decide how to read it.</>, <code>position = offset + Σ iₖ · stride[k]</code>],
+    [<>Slicing, transpose and expand are <b>views</b>: no copy, only metadata changes.</>, <>Non-contiguous views may need <code>.contiguous()</code> before <code>.view()</code>.</>],
+  ],
+  'recap-build': [
+    [<><b>Linear layer</b>: Z = XWᵀ + b</>, <><code>fc1.weight</code> is (out, in) = (256, 784); (B, 784) → (B, 256).</>],
+    [<><b>Stacking</b>: out_features must equal the next in_features.</>, <>784 → 256 → 128 → 10, 235,146 parameters in total.</>],
+    [<><b>Activation</b> after every hidden layer.</>, <>Without it, stacked linear layers collapse into a single linear layer.</>],
+  ],
+  'recap-train': [
+    [<><b>Forward → Loss</b>: logits → softmax → cross-entropy.</>, <>Loss is smooth, unlike accuracy, so it can guide learning.</>],
+    [<><b>Backward</b>: the chain rule gives every gradient in one pass.</>, <><code>loss.backward()</code> fills <code>.grad</code> for every parameter.</>],
+    [<><b>Update</b>: θ ← θ − η · ∂𝓛/∂θ, repeated for every batch.</>, <><code>zero_grad() → backward() → step()</code>; 938 iterations per epoch.</>],
+  ],
+};
+
+/** Opens the companion notebook in Colab. Change this if the notebook is hosted elsewhere. */
+const NOTEBOOK_URL = 'https://colab.research.google.com/github/Dxnn1u/slides/blob/main/decks/pytorch-basic/lecture6_pytorch_basic.ipynb';
+const notebookSections: Partial<Record<PageId, [string, string]>> = {
+  'recap-before': ['Before we begin', 'before-we-begin'],
+  'recap-tensor': ['Tensor', 'tensor'],
+  'recap-build': ['MLP · Build structure', 'mlp'],
+  'recap-train': ['MLP · Run training', 'run-training'],
+};
+
+function Recap({ id, preview }: { id: PageId; preview: boolean }) {
+  const section = notebookSections[id];
+  const label = section && <><span className="pb-nb-icon">▶</span><span>Try it in Colab</span><b>Notebook · {section[0]}</b></>;
+  return <div className="pb-stack">
+    <ol className="pb-recap">{recaps[id]!.map(([head, detail], i) => <li key={i}>
+      <span>{i + 1}</span><div><h3>{head}</h3><p>{detail}</p></div>
+    </li>)}</ol>
+    {section && (preview
+      ? <span className="pb-nb-link">{label}</span>
+      : <a className="pb-nb-link" href={`${NOTEBOOK_URL}#scrollTo=${section[1]}`} target="_blank" rel="noreferrer">{label}</a>)}
+  </div>;
+}
+
 /* ------------------------------------------------------------------ frame */
 
 const body: Partial<Record<PageId, (r: SlideRenderProps) => ReactNode>> = {
   why: () => <Why/>, roadmap: () => <Roadmap/>, numpy: () => <NumPy/>,
-  storage: r => <StorageScene step={r.step}/>, views: () => <Views/>, ndarray: () => <NdArray/>,
-  simd: r => <Simd step={r.step}/>, 'dtype-bits': () => <BitLayout/>, 'dtype-table': () => <DtypeTable/>,
-  fp64: () => <Fp64/>, tensor: () => <Tensor/>, positioning: () => <Positioning/>, related: () => <Related/>,
+  storage: r => <StorageScene step={r.step}/>, views: () => <Views/>, ndarray: r => <NdArray step={r.step}/>,
+  'dtype-bits': () => <BitLayout/>, 'dtype-table': () => <DtypeTable/>,
+  'dtype-tradeoff': r => <DtypeTradeoff step={r.step}/>, fp64: () => <Fp64/>, tensor: () => <Tensor/>, 'tensor-dims': () => <TensorDims/>, 'tensor-batch': () => <TensorBatch/>, positioning: () => <Positioning/>, related: () => <Related/>,
   mnist: () => <Mnist/>, pixels: () => <Pixels/>, task: r => <Task step={r.step}/>, size: () => <Size/>,
   glimpse: () => <NetworkDiagram/>, data: r => <Data step={r.step}/>, neuron: () => <Neuron/>,
   layer: r => <Layer step={r.step}/>, hyper: () => <Hyper/>, stacking: () => <Stacking/>, combine: () => <Combine/>,
@@ -663,11 +846,19 @@ function Slide(r: SlideRenderProps) {
   if (id === 'closing') return <section className="pb-slide pb-closing" data-still={still} aria-label={title}>
     <h1>Thanks!</h1><p>Questions?</p>
   </section>;
+  const footer = <footer><span>Lecture 6 · PyTorch basic</span><span>{String(index + 1).padStart(2, '0')}<i>/</i>{pages.length}</span></footer>;
+  if (id.startsWith('sub-')) return <section className={`pb-slide pb-part-slide pb-s-${id}`} data-still={still} aria-label={title}>
+    <SubDivider id={id as keyof typeof subTopics}/>{footer}
+  </section>;
+  if (id.startsWith('part-')) return <section className={`pb-slide pb-part-slide pb-s-${id}`} data-still={still} aria-label={title}>
+    <PartDivider id={id}/>{footer}
+  </section>;
+  const step = stepOf[id];
   return <section className={`pb-slide pb-s-${id}`} data-still={still} aria-label={title}>
-    <header><span>{chapter}</span></header>
+    <header><span>{chapter}</span>{step && <StepBar current={step} recap={id.startsWith('recap-')}/>}</header>
     <h1 className="pb-title">{title}</h1>
-    <main>{body[id]?.(r)}</main>
-    <footer><span>Lecture 6 · PyTorch basic</span><span>{String(index + 1).padStart(2, '0')}<i>/</i>{pages.length}</span></footer>
+    <main>{id.startsWith('recap-') ? <Recap id={id} preview={r.mode === 'preview'}/> : body[id]?.(r)}</main>
+    {footer}
   </section>;
 }
 
@@ -679,16 +870,16 @@ export const pytorchBasicDeck = defineDeck({
   RenderSlide: Slide,
   transition: fadeTransition(.25),
   previews: [
-    { slideId: 'cover' }, { slideId: 'storage', step: 2 }, { slideId: 'glimpse' }, { slideId: 'dtype-bits' },
-    { slideId: 'chain-rule' }, { slideId: 'activations' }, { slideId: 'simd' }, { slideId: 'train-loop' }, { slideId: 'data' },
+    { slideId: 'cover' }, { slideId: 'part-mlp' }, { slideId: 'storage', step: 2 }, { slideId: 'glimpse' }, { slideId: 'dtype-bits' },
+    { slideId: 'chain-rule' }, { slideId: 'activations' }, { slideId: 'ndarray', step: 2 }, { slideId: 'train-loop' }, { slideId: 'data' },
   ],
   chapters: [
     { id: 'intro', title: 'Introduction', slideId: 'why' },
-    { id: 'before', title: 'Before we begin', slideId: 'numpy' },
-    { id: 'tensor', title: 'Tensor & PyTorch', slideId: 'tensor' },
-    { id: 'overview', title: 'MLP · Overview', slideId: 'mnist' },
+    { id: 'before', title: 'Before we begin', slideId: 'part-before' },
+    { id: 'tensor', title: 'Tensor & PyTorch', slideId: 'part-tensor' },
+    { id: 'overview', title: 'MLP · Overview', slideId: 'part-mlp' },
     { id: 'build', title: 'MLP · Build structure', slideId: 'data' },
     { id: 'train', title: 'MLP · Run training', slideId: 'forward' },
-    { id: 'lab', title: 'Lab', slideId: 'lab' },
+    { id: 'lab', title: 'Lab', slideId: 'part-lab' },
   ],
 });
