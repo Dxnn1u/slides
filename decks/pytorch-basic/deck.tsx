@@ -65,7 +65,7 @@ const pages = [
   ['train-loop', '8. Train loop', 1, 'MLP · Run training'],
   ['recap-train', 'Recap: Run training', 1, 'MLP · Run training'],
   ['part-lab', 'Lab', 1, ''],
-  ['lab', 'Lab', 1, 'Lab'],
+  ['lab', 'Make your MLP fast', 1, 'Lab'],
   ['references', 'References', 1, 'Reference'],
   ['closing', 'Thanks', 1, ''],
 ] as const;
@@ -100,7 +100,7 @@ function Roadmap() {
     ['01', 'Before we begin', 'NumPy · SIMD · dtype'],
     ['02', 'Tensor & PyTorch', 'multi-dimensional arrays · memory layout · PyTorch'],
     ['03', 'MLP', 'Multi-Layer Perceptron · build structure → run training'],
-    ['04', 'Lab', 'Basic & Advanced'],
+    ['04', 'Lab', 'inference speed-up challenge'],
   ];
   return <div className="pb-roadmap">{items.map(([n, t, d]) =>
     <div key={n}><span>{n}</span><h2>{t}</h2><p>{d}</p></div>)}</div>;
@@ -802,13 +802,30 @@ for epoch in range(num_epochs):
   </div>;
 }
 
-function Lab() {
-  return <div className="pb-stack">
-    <div className="pb-two pb-two-tight">
-      <div className="pb-card"><span className="pb-tag">Basic</span><h3>For everyone</h3><p className="pb-muted">TBD</p></div>
-      <div className="pb-card pb-card-purple"><span className="pb-tag">Advanced</span><h3>Already familiar with PyTorch &amp; DNNs?</h3><p className="pb-muted">TBD</p></div>
+const labLevels: [string, string, ReactNode][] = [
+  ['0', 'Measure correctly', <>synchronize, warm up, repeat</>],
+  ['1', 'Inference mode', <>forward only, no graph for backward</>],
+  ['2', 'Move data less', <>one big copy, no <code>.item()</code> per image</>],
+  ['3', 'Batch size', <>throughput vs. latency</>],
+  ['4', 'Lower precision', <>fp16, then re-check the accuracy</>],
+  ['5', 'torch.compile', <>fewer, fused GPU operations</>],
+  ['6', 'Profiler', <>find where the time goes</>],
+  ['★', 'Challenge', <>your own tricks; post your samples / s</>],
+];
+
+function Lab({ preview }: { preview: boolean }) {
+  const label = <><span className="pb-nb-icon">▶</span><span>Open in Colab</span><b>Lab notebook</b></>;
+  return <div className="pb-stack pb-lab">
+    <p className="pb-lead">Run the MLP you just trained on all <b>10,000 test images</b>, as fast as you can.</p>
+    <div className="pb-chips pb-lab-rules"><span>Start from CPU memory</span><span>Accuracy ≥ 97%</span><span>Score = samples / s</span></div>
+    <div className="pb-card">
+      <ol className="pb-lab-levels">{labLevels.map(([n, head, detail]) =>
+        <li key={n}><span>{n}</span><div><h3>{head}</h3><p>{detail}</p></div></li>)}</ol>
+      {preview
+        ? <span className="pb-nb-link">{label}</span>
+        : <a className="pb-nb-link" href={LAB_URL} target="_blank" rel="noreferrer">{label}</a>}
     </div>
-    <p className="pb-note">Companion notebook: <a className="pb-inline-link" href={NOTEBOOK_URL} target="_blank" rel="noreferrer"><code>lecture6_pytorch_basic.ipynb</code></a> — runs on Colab or Kaggle, CPU or GPU.</p>
+    <p className="pb-note">Colab: <b>Runtime → Change runtime type → T4 GPU</b></p>
   </div>;
 }
 
@@ -834,7 +851,7 @@ const parts = [
   { id: 'part-before', n: '01', title: 'Before we begin', question: 'What makes numerical computing in Python fast?', topics: 'NumPy · ndarray · SIMD · dtype' },
   { id: 'part-tensor', n: '02', title: 'Tensor & PyTorch', question: 'What is a tensor, and what does PyTorch give us on top of it?', topics: '' },
   { id: 'part-mlp', n: '03', title: 'MLP', question: 'How do we teach a network to read handwritten digits?', topics: '' },
-  { id: 'part-lab', n: '04', title: 'Lab', question: 'Your turn: train it yourself.', topics: 'Basic · Advanced' },
+  { id: 'part-lab', n: '04', title: 'Lab', question: 'Your turn: make the MLP you trained run fast.', topics: 'measure · batch size · fp16 · torch.compile · profiler' },
 ] as const;
 
 const mlpSteps = ['Linear', 'Stacking', 'Activation', 'Forward', 'Loss', 'Backward', 'Update', 'Loop'];
@@ -925,6 +942,8 @@ const recaps: Partial<Record<PageId, [ReactNode, ReactNode][]>> = {
 
 /** Opens the companion notebook in Colab. Change this if the notebook is hosted elsewhere. */
 const NOTEBOOK_URL = 'https://colab.research.google.com/github/Dxnn1u/slides/blob/main/decks/pytorch-basic/lecture6_pytorch_basic.ipynb';
+/** Opens the lab notebook in Colab. */
+const LAB_URL = 'https://colab.research.google.com/github/Dxnn1u/slides/blob/main/decks/pytorch-basic/lecture6_lab_inference.ipynb';
 const notebookSections: Partial<Record<PageId, [string, string]>> = {
   'recap-before': ['Before we begin', 'before-we-begin'],
   'recap-tensor': ['Tensor', 'tensor'],
@@ -959,7 +978,7 @@ const body: Partial<Record<PageId, (r: SlideRenderProps) => ReactNode>> = {
   'loss-tasks': r => <LossTasks step={r.step}/>, loss: r => <Loss step={r.step}/>, softmax: () => <Softmax/>, 'softmax-vs': () => <SoftmaxVs/>,
   'cross-entropy': () => <CrossEntropy/>, 'backward-why': () => <BackwardWhy/>,
   'chain-rule': r => <ChainRule step={r.step}/>, backprop: () => <Backprop/>, update: () => <Update/>,
-  lr: r => <LearningRate step={r.step}/>, optimizer: () => <Optimizer/>, 'train-loop': () => <TrainLoop/>, lab: () => <Lab/>,
+  lr: r => <LearningRate step={r.step}/>, optimizer: () => <Optimizer/>, 'train-loop': () => <TrainLoop/>, lab: r => <Lab preview={r.mode === 'preview'}/>,
   references: r => <References preview={r.mode === 'preview'}/>,
 };
 

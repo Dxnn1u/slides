@@ -769,3 +769,14 @@
 [data-deck="pytorch-basic"] .pb-opt-table td { padding-top:11px; padding-bottom:11px; }
 [data-deck="pytorch-basic"] .pb-opt-table td:first-child { white-space:nowrap; }
 [data-deck="pytorch-basic"] .pb-opt-table td:last-child { color:var(--pb-teal); }
+
+/* ---------- lab */
+[data-deck="pytorch-basic"] .pb-lab { gap:22px; }
+[data-deck="pytorch-basic"] .pb-lab .pb-chips { display:flex; gap:14px; }
+[data-deck="pytorch-basic"] .pb-lab .pb-card { gap:28px; padding:34px 36px; }
+[data-deck="pytorch-basic"] .pb-lab-levels { list-style:none; margin:0; padding:0; display:grid; grid-template-rows:repeat(4, auto); grid-auto-flow:column; grid-auto-columns:1fr; gap:22px 48px; }
+[data-deck="pytorch-basic"] .pb-lab-levels li { display:flex; gap:16px; align-items:baseline; }
+[data-deck="pytorch-basic"] .pb-lab-levels li > span { flex:none; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; background:#fff; font-size:18px; font-weight:600; color:var(--pb-muted); transform:translateY(-3px); }
+[data-deck="pytorch-basic"] .pb-lab-levels h3 { display:inline; font-size:25px; font-weight:600; }
+[data-deck="pytorch-basic"] .pb-lab-levels p { display:inline; font-size:21px !important; color:var(--pb-muted); margin-left:12px; }
+[data-deck="pytorch-basic"] .pb-lab .pb-nb-link { font-size:19px; }
