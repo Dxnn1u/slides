@@ -3,7 +3,7 @@ import { defineDeck, fadeTransition, type SlideRenderProps } from '../../src/pre
 import { Code } from './Code';
 import { NdArraySlide, SIMD_ZOOM_STEPS } from './SimdZoom';
 import {
-  ActivationPlot, activations, BitLayout, ChainRule, DtypeRadar, NegLogPlot, NetworkDiagram, radarDtypes, StorageScene,
+  ActivationPlot, activations, BitLayout, ChainRule, DtypeRadar, LrValley, NegLogPlot, NetworkDiagram, radarDtypes, StorageScene,
 } from './Diagrams';
 import mnistSamples from './assets/mnist-samples.png';
 import mnistPixels from './assets/mnist-5-pixels.png';
@@ -17,6 +17,7 @@ const pages = [
   ['part-before', 'Before we begin', 1, ''],
   ['numpy', 'What is NumPy', 1, 'Before we begin'],
   ['ndarray', 'Why we like ndarray', SIMD_ZOOM_STEPS, 'Before we begin'],
+  ['float-sci', 'A float is scientific notation in binary', 3, 'Before we begin'],
   ['dtype-bits', 'What is dtype', 1, 'Before we begin'],
   ['dtype-table', 'Common dtypes', 1, 'Before we begin'],
   ['dtype-tradeoff', 'Choosing a dtype is a trade-off', 3, 'Before we begin'],
@@ -26,8 +27,9 @@ const pages = [
   ['sub-tensor', 'Tensor', 1, ''],
   ['tensor', 'What is a Tensor', 1, 'Tensor & PyTorch · Tensor'],
   ['tensor-dims', 'A tensor is a multi-dimensional array', 1, 'Tensor & PyTorch · Tensor'],
+  ['memory', 'Memory is one long line', 3, 'Tensor & PyTorch · Tensor'],
   ['storage', 'How is a tensor stored in memory?', 4, 'Tensor & PyTorch · Tensor'],
-  ['views', 'Views only change metadata', 1, 'Tensor & PyTorch · Tensor'],
+  ['layout', 'Row-major vs. column-major', 3, 'Tensor & PyTorch · Tensor'],
   ['tensor-batch', 'A batch of images: [32, 3, 28, 28]', 1, 'Tensor & PyTorch · Tensor'],
   ['sub-pytorch', 'PyTorch', 1, ''],
   ['positioning', 'Where PyTorch sits', 1, 'Tensor & PyTorch · PyTorch'],
@@ -46,9 +48,10 @@ const pages = [
   ['stacking', '2. Stacking layers', 1, 'MLP · Build structure'],
   ['combine', '2. How to combine layers', 1, 'MLP · Build structure'],
   ['activation', '3. Activation', 2, 'MLP · Build structure'],
-  ['activations', '3. Common activation functions', 1, 'MLP · Build structure'],
+  ['activations', '3. Common activation functions', 5, 'MLP · Build structure'],
   ['recap-build', 'Recap: Build structure', 1, 'MLP · Build structure'],
   ['forward', '4. Forward', 1, 'MLP · Run training'],
+  ['loss-tasks', '5. Loss — different tasks, different losses', 2, 'MLP · Run training'],
   ['loss', '5. Loss — why not accuracy?', 2, 'MLP · Run training'],
   ['softmax', '5. From logits to probability: softmax', 1, 'MLP · Run training'],
   ['softmax-vs', '5. Activation vs. softmax', 1, 'MLP · Run training'],
@@ -57,6 +60,7 @@ const pages = [
   ['chain-rule', '6. Backward — chain rule by hand', 7, 'MLP · Run training'],
   ['backprop', '6. How backward propagation works', 1, 'MLP · Run training'],
   ['update', '7. Update', 1, 'MLP · Run training'],
+  ['lr', '7. Update — choosing the learning rate', 3, 'MLP · Run training'],
   ['optimizer', '7. Optimizers', 1, 'MLP · Run training'],
   ['train-loop', '8. Train loop', 1, 'MLP · Run training'],
   ['recap-train', 'Recap: Run training', 1, 'MLP · Run training'],
@@ -95,7 +99,7 @@ function Roadmap() {
   const items = [
     ['01', 'Before we begin', 'NumPy · SIMD · dtype'],
     ['02', 'Tensor & PyTorch', 'multi-dimensional arrays · memory layout · PyTorch'],
-    ['03', 'MLP', '8 steps: build structure → run training'],
+    ['03', 'MLP', 'Multi-Layer Perceptron · build structure → run training'],
     ['04', 'Lab', 'Basic & Advanced'],
   ];
   return <div className="pb-roadmap">{items.map(([n, t, d]) =>
@@ -128,23 +132,63 @@ function NumPy() {
   </div>;
 }
 
-function Views() {
-  const rows = [
-    ['x', '(3, 4)', '(4, 1)', '0', 'yes', '—'],
-    ['x[1:, 1:]', '(2, 3)', '(4, 1)', '5', 'no', 'view'],
-    ['x.t()', '(4, 3)', '(1, 4)', '0', 'no', 'view'],
-    ['torch.tensor([1,2,3]).expand(4, 3)', '(4, 3)', '(0, 1)', '0', 'no', 'view'],
-    ['x.t().contiguous()', '(4, 3)', '(3, 1)', '0', 'yes', 'copy'],
-  ];
-  return <div className="pb-stack">
-    <table className="pb-table pb-mono-table">
-      <thead><tr><th>expression</th><th>shape</th><th>stride</th><th>offset</th><th>contiguous</th><th>data</th></tr></thead>
-      <tbody>{rows.map(r => <tr key={r[0]}>{r.map((c, i) =>
-        <td key={i} className={i === 4 && c === 'no' ? 'pb-warn' : i === 5 && c === 'copy' ? 'pb-strong' : ''}>{c}</td>)}</tr>)}</tbody>
-    </table>
+function LayoutPanel({ kind, on }: { kind: 'row' | 'col'; on: boolean }) {
+  const row = kind === 'row';
+  const cells = [[1, 2, 3], [4, 5, 6]];
+  const order = row ? [1, 2, 3, 4, 5, 6] : [1, 4, 2, 5, 3, 6];
+  const group = (v: number) => row ? Math.floor((v - 1) / 3) : (v - 1) % 3;
+  return <div className="pb-layout-panel" data-kind={kind} data-on={on}>
+    <div className="pb-layout-head">
+      <h3>{row ? 'Row-major' : 'Column-major'}</h3>
+      <span>{row ? 'C order' : 'Fortran order'}</span>
+    </div>
+    <p className="pb-layout-rule">{row ? 'store one row, then the next' : 'store one column, then the next'}</p>
+    <div className="pb-layout-body">
+      <div className="pb-layout-matrix">{cells.flat().map(v => <i key={v} data-g={group(v)}>{v}</i>)}</div>
+      <span className="pb-layout-arrow">→</span>
+      <div className="pb-layout-strip">{order.map((v, i) => <i key={i} data-g={group(v)}>{v}<small>[{i}]</small></i>)}</div>
+    </div>
+    <dl className="pb-layout-facts">
+      <div><dt>stride</dt><dd>{row ? '(3, 1)' : '(1, 2)'}</dd></div>
+      <div><dt>fastest index</dt><dd>{row ? 'last (column)' : 'first (row)'}</dd></div>
+    </dl>
+    <p className="pb-layout-users">{row ? <>C / C++, <b>NumPy</b>, <b>PyTorch</b> (default)</> : <>Fortran, MATLAB, Julia, <b>BLAS / LAPACK</b>, <b>cuBLAS</b></>}</p>
+  </div>;
+}
+
+function Layout({ step }: { step: number }) {
+  return <div className="pb-stack pb-layout">
+    <p className="pb-lead">Two ways to flatten the same 2 × 3 matrix into 1-D storage.</p>
     <div className="pb-two pb-two-tight">
-      <p className="pb-note">Slicing, transpose and expand are <b>O(1)</b>: no data moves, only shape / stride / offset change. Stride <b>0</b> means “read the same element again”.</p>
-      <p className="pb-note"><code>.view()</code> needs a compatible (usually contiguous) layout, so <code>x.t().view(12)</code> raises an error. Use <code>.contiguous()</code> or <code>.reshape()</code>.</p>
+      <LayoutPanel kind="row" on={true}/>
+      <LayoutPanel kind="col" on={step >= 1}/>
+    </div>
+    <R on={step >= 2} className="pb-two pb-two-tight pb-layout-notes">
+      <p><b>Speed:</b> neighbours in memory are fast to read (cache, SIMD). In a row-major tensor, walk along the <b>last</b> dimension in the inner loop.</p>
+      <p><b>Transpose:</b> <code>x.t()</code> reads the same storage column-major — stride <code>(4, 1)</code> → <code>(1, 4)</code>, no copy, so it is not contiguous.</p>
+    </R>
+  </div>;
+}
+
+function MemoryLine({ step }: { step: number }) {
+  const slots = Array.from({ length: 18 }, (_, i) => i);
+  const START = 3; // x's storage occupies slots 3 … 14
+  const inX = (i: number) => step >= 1 && i >= START && i < START + 12;
+  return <div className="pb-stack pb-memline">
+    <R on={step >= 2} className="pb-memline-top">
+      <div className="pb-memline-grid">{Array.from({ length: 12 }, (_, i) => <i key={i} data-q={i === 6}>{i === 6 ? '?' : ''}</i>)}</div>
+      <p className="pb-memline-q">Which slot holds <code>x[1, 2]</code>?</p>
+    </R>
+    <div className="pb-memline-strip">
+      {slots.map(i => <div key={i} className="pb-memline-slot" data-x={inX(i)} data-other={step >= 1 && !inX(i)}>
+        <i>{inX(i) ? `x` : ''}</i><small>{100 + i}</small>
+      </div>)}
+      {step >= 1 && <div className="pb-memline-brace" style={{ left: `calc(${START} * (100% / 18))`, width: `calc(12 * (100% / 18))` }}><span>storage of x — one contiguous block</span></div>}
+    </div>
+    <div className="pb-memline-notes">
+      <p data-on={true}><b>Memory</b> is one line of addresses — no rows, no columns.</p>
+      <p data-on={step >= 1}><b>A tensor</b> lives in one contiguous block of it.</p>
+      <p data-on={step >= 2}><b>Index → position</b> needs a rule: shape, stride, offset.</p>
     </div>
   </div>;
 }
@@ -162,6 +206,40 @@ function NdArray({ step }: { step: number }) {
 # -> float64`}/>
     <p className="pb-note">Not always lossless: very large integers lose precision as float64.</p>
   </>}/>;
+}
+
+function FloatSci({ step }: { step: number }) {
+  const exp = '10000001', man = '10100000000000000000000';
+  return <div className="pb-stack pb-fsci">
+    <div className="pb-fsci-row">
+      <span className="pb-fsci-tag">Decimal</span>
+      <div className="pb-fsci-eq">
+        <span className="pb-fsci-part pb-fsci-man">6.02<small>significant digits</small></span>
+        <span className="pb-fsci-op">×</span>
+        <span>10<sup className="pb-fsci-part pb-fsci-exp">23<small>exponent</small></sup></span>
+      </div>
+      <p>The digits carry the <b>precision</b>; the exponent only says how far to move the point — the <b>range</b>.</p>
+    </div>
+    <R on={step >= 1} className="pb-fsci-row">
+      <span className="pb-fsci-tag">Binary</span>
+      <div className="pb-fsci-eq">
+        <span>6.5 = 110.1<sub>2</sub> = </span>
+        <span className="pb-fsci-part pb-fsci-man">1.101<sub>2</sub><small>mantissa = 101</small></span>
+        <span className="pb-fsci-op">×</span>
+        <span>2<sup className="pb-fsci-part pb-fsci-exp">2<small>exponent = 2</small></sup></span>
+      </div>
+      <p>Normalised so it always starts with <b>1.</b> — both the integer and the fraction part end up in the mantissa.</p>
+    </R>
+    <R on={step >= 2} className="pb-fsci-row">
+      <span className="pb-fsci-tag">fp32 bits</span>
+      <div className="pb-fsci-bits">
+        <div className="pb-fsci-field"><div className="pb-fsci-cells">{'0'.split('').map((b, i) => <i key={i} className="pb-bit-sign">{b}</i>)}</div><small>sign</small></div>
+        <div className="pb-fsci-field"><div className="pb-fsci-cells">{exp.split('').map((b, i) => <i key={i} className="pb-bit-exp">{b}</i>)}</div><small>exponent: 2 + 127 = 129</small></div>
+        <div className="pb-fsci-field"><div className="pb-fsci-cells">{man.split('').map((b, i) => <i key={i} className="pb-bit-man">{b}</i>)}</div><small>mantissa: 101, padded to 23 bits</small></div>
+      </div>
+      <p><b>value = (−1)<sup>sign</sup> × 1.mantissa × 2<sup>exponent − 127</sup></b>. The leading 1 is implicit (not stored); the bias 127 lets the exponent go negative.</p>
+    </R>
+  </div>;
 }
 
 function DtypeTable() {
@@ -232,9 +310,9 @@ x = x.to("cuda") # move to GPU`}/>
 
 function TensorDims() {
   const levels: [string, string, string, string, number][] = [
-    ['0-D', 'scalar', 'loss', '[]', 0],
-    ['1-D', 'vector', 'fc1.bias', '[256]', 1],
-    ['2-D', 'matrix', 'fc1.weight', '[256, 784]', 2],
+    ['0-D', 'scalar', 'one pixel’s brightness', '[]', 0],
+    ['1-D', 'vector', 'one row of pixels', '[28]', 1],
+    ['2-D', 'matrix', 'one grayscale image', '[28, 28]', 2],
     ['3-D', '', 'one RGB image', '[3, 28, 28]', 3],
     ['4-D', '', 'a batch of RGB images', '[32, 3, 28, 28]', 4],
   ];
@@ -254,7 +332,7 @@ function TensorDims() {
       <code>{shape}</code>
       <p>{example}</p>
     </div>)}</div>
-    <p className="pb-note">The number of dimensions is <code>x.ndim</code>; the size of each one is <code>x.shape</code>. Beyond 4-D: a batch of videos is <code>[B, T, C, H, W]</code>, and an LLM’s hidden states are <code>[batch, seq_len, hidden]</code>.</p>
+    <p className="pb-note">The number of dimensions is <code>x.ndim</code>; the size of each one is <code>x.shape</code>. Other data use the same idea: a batch of videos is 5-D <code>[B, T, C, H, W]</code>, and an LLM’s hidden states are 3-D <code>[batch, seq_len, hidden]</code>.</p>
   </div>;
 }
 
@@ -329,7 +407,15 @@ function Pixels() {
 function Task({ step }: { step: number }) {
   return <div className="pb-stack">
     <p className="pb-lead">Given a 28×28 image, predict which digit (0–9) it shows, as accurately as possible.</p>
-    <blockquote className="pb-quote">A neural network is a function <i>f</i>(<i>x</i>; <i>θ</i>) with learnable parameters <i>θ</i>. Training means finding the <i>θ</i> that minimises the loss.</blockquote>
+    <div className="pb-fdef">
+      <p className="pb-fdef-head">A neural network is a function <span className="pb-fdef-f"><i>f</i>(<i>x</i>; <i>θ</i>)</span></p>
+      <dl>
+        <dt><i>x</i></dt><dd><b>input</b> — one 28 × 28 image</dd>
+        <dt><i>θ</i></dt><dd><b>parameters</b> — every number inside the network that can be adjusted. They start random and are tuned during training; our MLP has 235,146 of them.</dd>
+        <dt><i>f</i>(<i>x</i>; <i>θ</i>)</dt><dd><b>output</b> — one score for each digit 0–9; the highest score is the prediction</dd>
+      </dl>
+      <p className="pb-fdef-train"><b>Training</b> = finding the <i>θ</i> that makes the predictions as correct as possible.</p>
+    </div>
     <R on={step >= 1} className="pb-two pb-two-tight">
       <div className="pb-card pb-card-purple"><span className="pb-tag">Build structure</span><h3>defines the shape of <i>f</i>(<i>x</i>; <i>θ</i>)</h3><p className="pb-muted">steps 1–3: linear layer · stacking · activation</p></div>
       <div className="pb-card pb-card-teal"><span className="pb-tag">Run training</span><h3>finds the optimal <i>θ</i></h3><p className="pb-muted">steps 4–8: forward · loss · backward · update · loop</p></div>
@@ -406,13 +492,13 @@ function Layer({ step }: { step: number }) {
     <div className="pb-layer-row">
       <div className="pb-layer-text">
         <h3 className="pb-h3">A group of neurons</h3>
-        <p>Stack the weights of all 256 neurons row by row → weight matrix <b>W</b>. Each row is one neuron, so PyTorch stores <code>fc1.weight</code> as <b>(out, in) = (256, 784)</b>.</p>
+        <p>Stack the weights of all 256 neurons row by row → weight matrix <b>W</b>. Each row is one neuron, so PyTorch stores <code>fc1.weight</code> as <b>(out, in) = (256, 784)</b> — a 2-D tensor; <code>fc1.bias</code> is 1-D, <b>(256,)</b>.</p>
       </div>
       <div className="pb-formula pb-formula-sm"><b>z</b> = W<b>x</b> + <b>b</b>, &nbsp; W ∈ ℝ<sup>256×784</sup></div>
     </div>
     <R on={step >= 1} className="pb-layer-row">
-      <div className="pb-layer-text"><h3 className="pb-h3">Single sample</h3></div>
-      <div className="pb-shape-eq"><span>(256, 784)</span><b>·</b><span>(784,)</span><b>+</b><span>(256,)</span><b>→</b><span className="pb-shape-out">(256,)</span></div>
+      <div className="pb-layer-text"><h3 className="pb-h3">Single sample</h3><p><code>@</code> = matrix multiplication (Python operator, same as <code>torch.matmul</code>)</p></div>
+      <div className="pb-shape-eq"><span>(256, 784)</span><b>@</b><span>(784,)</span><b>+</b><span>(256,)</span><b>→</b><span className="pb-shape-out">(256,)</span></div>
     </R>
     <R on={step >= 2} className="pb-layer-row">
       <div className="pb-layer-text"><h3 className="pb-h3">Batch</h3><p>Each sample is a row of X, so we multiply by <b>Wᵀ</b>. The bias is broadcast to every row.</p></div>
@@ -487,10 +573,14 @@ function Activation({ step }: { step: number }) {
   </div>;
 }
 
-function Activations() {
-  return <div className="pb-stack">
-    <div className="pb-acts">{activations.map(a => <div key={a.name}>
-      <ActivationPlot fn={a.fn}/><h3>{a.name}</h3><p>{a.use}</p>
+function Activations({ step }: { step: number }) {
+  return <div className="pb-stack pb-acts-stack">
+    <div className="pb-acts pb-acts-story">{activations.map((a, i) => <div key={a.name} data-on={i <= step} data-current={i === step}>
+      <ActivationPlot fn={a.fn}/>
+      <h3>{a.name}</h3>
+      <p className="pb-act-use">{a.use}</p>
+      <p className="pb-act-fix"><b>{i === 0 ? '+' : '✓'}</b>{a.fixes}</p>
+      {a.issue && <p className="pb-act-issue"><b>✗</b>{a.issue}</p>}
     </div>)}</div>
     <div className="pb-where"><span className="pb-tag pb-tag-blue">Where to put</span><p>After every <b>hidden</b> layer, but <b>not</b> after the output layer. The output stays as logits; softmax is handled inside <code>nn.CrossEntropyLoss</code>.</p></div>
   </div>;
@@ -523,10 +613,37 @@ function Forward() {
   </div>;
 }
 
+function LossTasks({ step }: { step: number }) {
+  return <div className="pb-stack pb-ltasks">
+    <p className="pb-lead">A <b>loss</b> is one number that measures how wrong the predictions are — lower is better. Which loss to use depends on <b>what the model outputs</b>.</p>
+    <div className="pb-two pb-two-tight">
+      <div className="pb-ltask">
+        <h3 className="pb-ltask-title">Regression<span>predict a number</span></h3>
+        <p className="pb-ltask-eg">house price, temperature, tomorrow’s stock price</p>
+        <dl>
+          <dt>output</dt><dd>one number <i>ŷ</i></dd>
+          <dt>loss</dt><dd><b>MSE</b> = mean((<i>ŷ</i> − <i>y</i>)²)</dd>
+          <dt>PyTorch</dt><dd><code>nn.MSELoss</code></dd>
+        </dl>
+      </div>
+      <div className="pb-ltask pb-ltask-cls" data-on={step >= 1}>
+        <h3 className="pb-ltask-title">Classification<span>pick a category</span></h3>
+        <p className="pb-ltask-eg">which digit is this? is this email spam?</p>
+        <dl>
+          <dt>output</dt><dd>one score per class (logits)</dd>
+          <dt>loss</dt><dd><b>Cross-entropy</b> = −log <i>p</i>(correct class)</dd>
+          <dt>PyTorch</dt><dd><code>nn.CrossEntropyLoss</code></dd>
+        </dl>
+      </div>
+    </div>
+    <p className="pb-ltask-ours" data-on={step >= 1}>Our task — <b>which digit is this?</b> — is <b>classification</b>, so we use cross-entropy. The next slides build it up step by step.</p>
+  </div>;
+}
+
 function Loss({ step }: { step: number }) {
   const rows = [['A', 0.3, 0.5, 8, 0, 1.20], ['B', 0.4, 0.45, 8, 0, 0.92], ['C', 0.45, 0.4, 3, 1, 0.80], ['D', 0.9, 0.05, 3, 1, 0.11]] as const;
   return <div className="pb-stack">
-    <p className="pb-lead">We need a single number telling us how badly the model is doing — <b>lower is better</b>. Target digit: <b>3</b>.</p>
+    <p className="pb-lead">For classification, why not just train on <b>accuracy</b> directly? Target digit: <b>3</b>.</p>
     <div className="pb-loss-grid">
       <table className="pb-table">
         <thead><tr><th>Phase</th><th>P(3)</th><th>P(8)</th><th>Prediction</th><th>Accuracy</th><th>Loss = −ln P(3)</th></tr></thead>
@@ -626,20 +743,37 @@ function Update() {
   </div>;
 }
 
+function LearningRate({ step }: { step: number }) {
+  const panels = [
+    { eta: 0.05, title: 'Too small', tone: 'warn', text: 'tiny steps: training is very slow and may stall before reaching the bottom' },
+    { eta: 1.1, title: 'Too large', tone: 'bad', text: 'overshoots the bottom, bounces across the valley; the loss can grow until it becomes NaN' },
+    { eta: 0.3, title: 'Just right', tone: 'good', text: 'big enough to move fast, small enough to settle at the bottom' },
+  ];
+  return <div className="pb-stack pb-lr">
+    <p className="pb-lead">Same starting point, same loss curve — only <i>η</i> changes. Each dot is one update.</p>
+    <div className="pb-lr-panels">{panels.map((p, i) => <div key={p.title} className={`pb-lr-panel pb-lr-${p.tone}`} data-on={i <= step}>
+      <div className="pb-lr-head"><h3>{p.title}</h3><code>η = {p.eta}</code></div>
+      <LrValley eta={p.eta} steps={6}/>
+      <p>{p.text}</p>
+    </div>)}</div>
+    <p className="pb-lr-note" data-on={step >= 2}>In practice: <b>learning-rate schedules</b> (start small with warm-up, then decay) and <b>adaptive optimizers</b> make this choice much less fragile — next slide.</p>
+  </div>;
+}
+
 function Optimizer() {
   const rows = [
-    ['SGD', 'plain gradient descent on each mini-batch'],
-    ['SGD + Momentum', 'running average of past gradients smooths the direction'],
-    ['AdaGrad / RMSProp', 'adapts the step size per parameter'],
-    ['Adam', 'Momentum + RMSProp; converges fast with little tuning'],
-    ['AdamW', 'Adam with decoupled weight decay; the default for LLM training'],
-    ['Muon', 'orthogonalises updates of 2-D weight matrices; used with AdamW for the rest'],
+    ['SGD', 'θ ← θ − η · gradient, one η for every parameter', 'baseline: η is hard to pick'],
+    ['SGD + Momentum', 'keep a running average of past gradients', 'less zig-zag, faster on flat ground'],
+    ['AdaGrad / RMSProp', 'scale each parameter’s step by its recent gradient size', 'own step size per parameter: less η tuning'],
+    ['Adam', 'Momentum + RMSProp', 'robust default, little tuning'],
+    ['AdamW', 'Adam + decoupled weight decay (gently shrinks weights every step)', 'weight decay done right; LLM default'],
+    ['Muon', 'orthogonalise the update of each 2-D weight matrix', 'balanced updates for weight matrices'],
   ];
-  return <div className="pb-stack">
-    <p className="pb-lead">Updating every parameter by hand is impractical — the <b>optimizer</b> decides how to update each one based on its gradient.</p>
-    <table className="pb-table">
-      <thead><tr><th>Optimizer</th><th>Key idea</th></tr></thead>
-      <tbody>{rows.map(([n, d]) => <tr key={n}><td className="pb-mono">{n}</td><td>{d}</td></tr>)}</tbody>
+  return <div className="pb-stack pb-opt">
+    <p className="pb-lead">The <b>optimizer</b> decides how to turn each gradient into an update — most of them exist to make the step size less fragile.</p>
+    <table className="pb-table pb-opt-table">
+      <thead><tr><th>Optimizer</th><th>Idea</th><th>What it improves</th></tr></thead>
+      <tbody>{rows.map(([n, d, f]) => <tr key={n}><td className="pb-mono">{n}</td><td>{d}</td><td>{f}</td></tr>)}</tbody>
     </table>
   </div>;
 }
@@ -706,8 +840,8 @@ const parts = [
 const mlpSteps = ['Linear', 'Stacking', 'Activation', 'Forward', 'Loss', 'Backward', 'Update', 'Loop'];
 const stepOf: Partial<Record<PageId, number>> = {
   data: 1, neuron: 1, layer: 1, hyper: 1, stacking: 2, combine: 2, activation: 3, activations: 3, 'recap-build': 3,
-  forward: 4, loss: 5, softmax: 5, 'softmax-vs': 5, 'cross-entropy': 5,
-  'backward-why': 6, 'chain-rule': 6, backprop: 6, update: 7, optimizer: 7, 'train-loop': 8, 'recap-train': 8,
+  forward: 4, 'loss-tasks': 5, loss: 5, softmax: 5, 'softmax-vs': 5, 'cross-entropy': 5,
+  'backward-why': 6, 'chain-rule': 6, backprop: 6, update: 7, lr: 7, optimizer: 7, 'train-loop': 8, 'recap-train': 8,
 };
 
 function StepBar({ current, recap }: { current: number; recap: boolean }) {
@@ -726,10 +860,11 @@ function PartDivider({ id }: { id: PageId }) {
     <div className="pb-part-main">
       <span className="pb-part-n">{part.n}</span>
       <h1>{part.title}</h1>
+      {part.id === 'part-mlp' && <p className="pb-part-full"><b>M</b>ulti-<b>L</b>ayer <b>P</b>erceptron</p>}
       <p className="pb-part-q">{part.question}</p>
       {part.topics && <p className="pb-part-topics">{part.topics}</p>}
       {id === 'part-tensor' && <div className="pb-part-subs">
-        <div><span>A</span><h3>Tensor</h3><p>multi-dimensional arrays · stride &amp; offset · views</p></div>
+        <div><span>A</span><h3>Tensor</h3><p>multi-dimensional arrays · stride &amp; offset · row- / column-major</p></div>
         <div><span>B</span><h3>PyTorch</h3><p>where it sits · related frameworks</p></div>
       </div>}
       {id === 'part-mlp' && <div className="pb-part-steps">
@@ -744,7 +879,7 @@ function PartDivider({ id }: { id: PageId }) {
 }
 
 const subTopics = {
-  'sub-tensor': { title: 'Tensor', question: 'What exactly is a tensor, and how is it laid out in memory?', topics: 'multi-dimensional arrays · stride & offset · views' },
+  'sub-tensor': { title: 'Tensor', question: 'What exactly is a tensor, and how is it laid out in memory?', topics: 'multi-dimensional arrays · stride & offset · row- / column-major' },
   'sub-pytorch': { title: 'PyTorch', question: 'We have tensors. Why do we still need a framework?', topics: 'where it sits · related frameworks' },
 } as const;
 
@@ -774,7 +909,7 @@ const recaps: Partial<Record<PageId, [ReactNode, ReactNode][]>> = {
   'recap-tensor': [
     [<>A tensor is a <b>multi-dimensional array</b> + <code>device</code> + <code>requires_grad</code>.</>, <><code>[32, 3, 28, 28]</code> = [N, C, H, W]: images, channels, rows, columns.</>],
     [<>Its data is one <b>1-D storage</b>; shape, stride and offset decide how to read it.</>, <code>position = offset + Σ iₖ · stride[k]</code>],
-    [<>Slicing, transpose and expand are <b>views</b>: no copy, only metadata changes.</>, <>Non-contiguous views may need <code>.contiguous()</code> before <code>.view()</code>.</>],
+    [<>Slicing and transpose <b>don’t copy</b> — they only change stride / offset.</>, <>Row-major is the default; <code>x.t()</code> reads the same storage column-major.</>],
   ],
   'recap-build': [
     [<><b>Linear layer</b>: Z = XWᵀ + b</>, <><code>fc1.weight</code> is (out, in) = (256, 784); (B, 784) → (B, 256).</>],
@@ -814,17 +949,17 @@ function Recap({ id, preview }: { id: PageId; preview: boolean }) {
 
 const body: Partial<Record<PageId, (r: SlideRenderProps) => ReactNode>> = {
   why: () => <Why/>, roadmap: () => <Roadmap/>, numpy: () => <NumPy/>,
-  storage: r => <StorageScene step={r.step}/>, views: () => <Views/>, ndarray: r => <NdArray step={r.step}/>,
-  'dtype-bits': () => <BitLayout/>, 'dtype-table': () => <DtypeTable/>,
+  memory: r => <MemoryLine step={r.step}/>, storage: r => <StorageScene step={r.step}/>, layout: r => <Layout step={r.step}/>, ndarray: r => <NdArray step={r.step}/>,
+  'float-sci': r => <FloatSci step={r.step}/>, 'dtype-bits': () => <BitLayout/>, 'dtype-table': () => <DtypeTable/>,
   'dtype-tradeoff': r => <DtypeTradeoff step={r.step}/>, fp64: () => <Fp64/>, tensor: () => <Tensor/>, 'tensor-dims': () => <TensorDims/>, 'tensor-batch': () => <TensorBatch/>, positioning: () => <Positioning/>, related: () => <Related/>,
   mnist: () => <Mnist/>, pixels: () => <Pixels/>, task: r => <Task step={r.step}/>, size: () => <Size/>,
   glimpse: () => <NetworkDiagram/>, data: r => <Data step={r.step}/>, neuron: () => <Neuron/>,
   layer: r => <Layer step={r.step}/>, hyper: () => <Hyper/>, stacking: () => <Stacking/>, combine: () => <Combine/>,
-  activation: r => <Activation step={r.step}/>, activations: () => <Activations/>, forward: () => <Forward/>,
-  loss: r => <Loss step={r.step}/>, softmax: () => <Softmax/>, 'softmax-vs': () => <SoftmaxVs/>,
+  activation: r => <Activation step={r.step}/>, activations: r => <Activations step={r.step}/>, forward: () => <Forward/>,
+  'loss-tasks': r => <LossTasks step={r.step}/>, loss: r => <Loss step={r.step}/>, softmax: () => <Softmax/>, 'softmax-vs': () => <SoftmaxVs/>,
   'cross-entropy': () => <CrossEntropy/>, 'backward-why': () => <BackwardWhy/>,
   'chain-rule': r => <ChainRule step={r.step}/>, backprop: () => <Backprop/>, update: () => <Update/>,
-  optimizer: () => <Optimizer/>, 'train-loop': () => <TrainLoop/>, lab: () => <Lab/>,
+  lr: r => <LearningRate step={r.step}/>, optimizer: () => <Optimizer/>, 'train-loop': () => <TrainLoop/>, lab: () => <Lab/>,
   references: r => <References preview={r.mode === 'preview'}/>,
 };
 

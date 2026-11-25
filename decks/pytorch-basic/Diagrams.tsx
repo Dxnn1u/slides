@@ -57,6 +57,7 @@ y[1, 2]              # 5 + 1×4 + 2×1 = 11`;
         <div><dt>stride</dt><dd>(4, 1)</dd></div>
         <div data-on={step >= 2}><dt>storage_offset</dt><dd>{step >= 2 ? 5 : 0}</dd></div>
         <div data-on={step >= 3}><dt>position</dt><dd>offset + i₀·4 + i₁·1</dd></div>
+        <div data-on={step >= 2}><dt>y’s data</dt><dd className="pb-readout-note">shared with x — no copy</dd></div>
       </dl>
     </div>
     <svg viewBox="0 0 1408 330" className="pb-strip">
@@ -148,6 +149,27 @@ export function DtypeRadar({ shown }: { shown: number }) {
   </svg>;
 }
 
+/* ------------------------------------------------------------------ learning-rate valley */
+
+/** Gradient descent on loss(θ) = θ², starting at θ = −2.5: θ ← θ − η · 2θ. */
+export function LrValley({ eta, steps }: { eta: number; steps: number }) {
+  const W = 400, H = 250, sx = (t: number) => 20 + (t + 4) / 8 * (W - 40), sy = (f: number) => H - 24 - f / 16 * (H - 50);
+  const curve = Array.from({ length: 81 }, (_, i) => -4 + i * 0.1).map((t, i) => `${i ? 'L' : 'M'}${sx(t).toFixed(1)} ${sy(t * t).toFixed(1)}`).join(' ');
+  const pts: number[] = [-2.5];
+  for (let i = 0; i < steps; i++) pts.push(pts[pts.length - 1] * (1 - 2 * eta));
+  const shown = pts.filter((_, i) => i === 0 || Math.abs(pts[i - 1]) <= 4);
+  const inside = shown.filter(t => Math.abs(t) <= 4);
+  const escaped = shown.length > inside.length;
+  return <svg viewBox={`0 0 ${W} ${H}`} className="pb-lr-svg">
+    <path d={curve} className="pb-lr-curve"/>
+    <circle cx={sx(0)} cy={sy(0)} r={5} className="pb-lr-min"/>
+    {inside.slice(1).map((t, i) => <line key={`l${i}`} x1={sx(inside[i])} y1={sy(inside[i] ** 2)} x2={sx(t)} y2={sy(t * t)} className="pb-lr-step"/>)}
+    {inside.map((t, i) => <circle key={i} cx={sx(t)} cy={sy(t * t)} r={i === 0 ? 7 : 6} className={i === 0 ? 'pb-lr-start' : 'pb-lr-pt'}/>)}
+    {escaped && <text x={W - 20} y={22} textAnchor="end" className="pb-lr-esc">↗ off the chart</text>}
+    <text x={sx(0)} y={H - 4} textAnchor="middle" className="pb-lr-axis">θ</text>
+  </svg>;
+}
+
 /* ------------------------------------------------------------------ Network */
 
 type Layer = { label: string; sub: string; tone: 'gray' | 'purple' | 'teal' };
@@ -201,12 +223,17 @@ export function NetworkDiagram({ width = 1408, loop = true, compact = false }: {
 
 const gelu = (x: number) => 0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * x ** 3)));
 const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
-export const activations: { name: string; fn: (x: number) => number; use: string }[] = [
-  { name: 'ReLU', fn: x => Math.max(0, x), use: 'the most commonly used' },
-  { name: 'GELU', fn: gelu, use: 'GPT-2, BERT' },
-  { name: 'SiLU', fn: x => x * sigmoid(x), use: 'Llama & most recent LLMs (in SwiGLU)' },
-  { name: 'Tanh', fn: Math.tanh, use: 'RNN, early stage' },
-  { name: 'Sigmoid', fn: sigmoid, use: 'binary classification, early stage' },
+export const activations: { name: string; fn: (x: number) => number; use: string; fixes: string; issue: string }[] = [
+  { name: 'Sigmoid', fn: sigmoid, use: 'early networks, binary output',
+    fixes: 'smooth, squashes any input into (0, 1)', issue: 'flat at both ends → slope ≈ 0, learning stalls; outputs always positive' },
+  { name: 'Tanh', fn: Math.tanh, use: 'RNNs',
+    fixes: 'centered at 0: outputs in (−1, 1)', issue: 'still flat at both ends' },
+  { name: 'ReLU', fn: x => Math.max(0, x), use: 'the most common default',
+    fixes: 'no flat end for x > 0 (slope 1); very cheap: max(0, x)', issue: 'x < 0 → slope 0: a neuron can get stuck at 0' },
+  { name: 'GELU', fn: gelu, use: 'GPT-2, BERT',
+    fixes: 'smooth; a small dip below 0 keeps some slope for x < 0', issue: 'costlier to compute' },
+  { name: 'SiLU', fn: x => x * sigmoid(x), use: 'Llama & most recent LLMs (SwiGLU)',
+    fixes: 'x · sigmoid(x): GELU-like shape, simpler formula', issue: '' },
 ];
 
 export function ActivationPlot({ fn }: { fn: (x: number) => number }) {
